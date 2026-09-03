@@ -42,10 +42,17 @@ function env_val(string $key, string $default = ''): string
 }
 
 /* ── 공통 응답 유틸 ───────────────────────────────────────────────────── */
-$allowedOrigin = env_val('ALLOWED_ORIGIN', '*');
+/* CORS: 콤마로 구분된 허용 오리진 목록 중 요청 Origin 과 일치할 때만 echo-back.
+ * 와일드카드(*)는 Allow-Credentials:true 와 함께 쓰면 스펙 위반(브라우저 무시)이고
+ * 타 도메인에서 엔드포인트를 직접 호출하는 것도 막지 못하므로 사용하지 않는다. */
+$allowedOrigins = array_filter(array_map('trim', explode(',', env_val('ALLOWED_ORIGIN', ''))));
+$requestOrigin = (string) ($_SERVER['HTTP_ORIGIN'] ?? '');
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-header('Access-Control-Allow-Credentials: true');
+header('Vary: Origin');
+if ($requestOrigin !== '' && in_array($requestOrigin, $allowedOrigins, true)) {
+    header('Access-Control-Allow-Origin: ' . $requestOrigin);
+    header('Access-Control-Allow-Credentials: true');
+}
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('X-Content-Type-Options: nosniff');
@@ -67,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'token') {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        $_SESSION['csrf_issued_at'] = time();
     }
     respond(200, ['token' => $_SESSION['csrf_token']]);
 }
@@ -91,8 +99,53 @@ function field(array $d, string $k): string
     return trim((string) ($d[$k] ?? ''));
 }
 
+/* ── IP 기준 요청 제한 저장소 (writable/ratelimit/, 웹 접근 차단) ──────── */
+function rl_dir(): string
+{
+    $dir = __DIR__ . '/writable/ratelimit';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    return $dir;
+}
+
+/** IP 당 최소 간격(초) / 시간당 최대 횟수 검사. 허용되면 즉시 기록 후 true. */
+function rl_allow(string $ip, int $minIntervalSec, int $maxPerHour): bool
+{
+    $path = rl_dir() . '/' . hash('sha256', $ip) . '.json';
+    $fp = fopen($path, 'c+');
+    if ($fp === false) {
+        return true; // 저장소 장애로 정상 문의까지 막지 않는다 (가용성 우선)
+    }
+    flock($fp, LOCK_EX);
+    $raw = stream_get_contents($fp);
+    $state = $raw !== false && $raw !== '' ? json_decode($raw, true) : null;
+    $now = time();
+    if (!is_array($state) || ($now - (int) ($state['window_start'] ?? 0)) > 3600) {
+        $state = ['window_start' => $now, 'count' => 0, 'last_sent' => 0];
+    }
+    $allowed = ($now - (int) $state['last_sent']) >= $minIntervalSec && (int) $state['count'] < $maxPerHour;
+    if ($allowed) {
+        $state['count'] = (int) $state['count'] + 1;
+        $state['last_sent'] = $now;
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, json_encode($state));
+        fflush($fp);
+    }
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    return $allowed;
+}
+
 /* ── 허니팟 (봇 차단) — 채워져 있으면 조용히 성공 처리 ─────────────────── */
 if (field($data, 'company_url') !== '') {
+    respond(200, ['ok' => true, 'message' => '접수되었습니다.']);
+}
+
+/* ── 제출 속도 트랩 — 토큰 발급 3초 이내 제출은 봇으로 간주, 조용히 성공 처리 ── */
+$issuedAt = (int) ($_SESSION['csrf_issued_at'] ?? 0);
+if ($issuedAt > 0 && (time() - $issuedAt) < 3) {
     respond(200, ['ok' => true, 'message' => '접수되었습니다.']);
 }
 
@@ -103,9 +156,9 @@ if ($sessToken === '' || $sentToken === '' || !hash_equals($sessToken, $sentToke
     respond(419, ['ok' => false, 'error' => '보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.']);
 }
 
-/* ── 간단한 요청 제한 (동일 세션 30초) ────────────────────────────────── */
-$now = time();
-if (isset($_SESSION['last_sent']) && ($now - (int) $_SESSION['last_sent']) < 30) {
+/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — 세션 초기화로 우회 못하게 IP 로 고정 ── */
+$clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+if ($clientIp === '' || !rl_allow($clientIp, 60, 5)) {
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
 }
 
@@ -205,7 +258,6 @@ try {
 
     $mail->send();
 
-    $_SESSION['last_sent'] = $now;
     respond(200, ['ok' => true, 'message' => '문의가 정상 접수되었습니다. 영업일 기준 1일 내 회신드리겠습니다.']);
 } catch (MailException $e) {
     error_log('contact.php mail error: ' . $mail->ErrorInfo);

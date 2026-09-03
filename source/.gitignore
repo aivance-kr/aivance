@@ -4,6 +4,7 @@
 # Composer deps
 /vendor/
 
-# Runtime
-/writable/
+# Runtime (rate-limit 상태 파일 등) — 웹 접근 차단용 .htaccess 는 커밋한다
+/writable/*
+!/writable/.htaccess
 *.log
