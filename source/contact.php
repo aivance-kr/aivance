@@ -138,14 +138,33 @@ function rl_allow(string $ip, int $minIntervalSec, int $maxPerHour): bool
     return $allowed;
 }
 
+/** 차단 이벤트를 날짜별 파일로 기록 (writable/logs/, 웹 접근 차단). */
+function log_spam_block(string $reason, array $extra = []): void
+{
+    $dir = __DIR__ . '/writable/logs';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    $line = sprintf(
+        "[%s] ip=%s reason=%s %s\n",
+        date('c'),
+        (string) ($_SERVER['REMOTE_ADDR'] ?? '-'),
+        $reason,
+        json_encode($extra, JSON_UNESCAPED_UNICODE)
+    );
+    file_put_contents($dir . '/spam-' . date('Y-m-d') . '.log', $line, FILE_APPEND | LOCK_EX);
+}
+
 /* ── 허니팟 (봇 차단) — 채워져 있으면 조용히 성공 처리 ─────────────────── */
 if (field($data, 'company_url') !== '') {
+    log_spam_block('honeypot');
     respond(200, ['ok' => true, 'message' => '접수되었습니다.']);
 }
 
 /* ── 제출 속도 트랩 — 토큰 발급 3초 이내 제출은 봇으로 간주, 조용히 성공 처리 ── */
 $issuedAt = (int) ($_SESSION['csrf_issued_at'] ?? 0);
 if ($issuedAt > 0 && (time() - $issuedAt) < 3) {
+    log_spam_block('speed_trap', ['elapsed_sec' => time() - $issuedAt]);
     respond(200, ['ok' => true, 'message' => '접수되었습니다.']);
 }
 
@@ -159,6 +178,7 @@ if ($sessToken === '' || $sentToken === '' || !hash_equals($sessToken, $sentToke
 /* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — 세션 초기화로 우회 못하게 IP 로 고정 ── */
 $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
 if ($clientIp === '' || !rl_allow($clientIp, 60, 5)) {
+    log_spam_block('rate_limit');
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
 }
 
@@ -188,6 +208,28 @@ if ($product !== '' && !in_array($product, $allowedProducts, true)) {
 }
 if ($errors) {
     respond(422, ['ok' => false, 'error' => '입력값을 확인해 주세요.', 'fields' => $errors]);
+}
+
+/* ── 내용 스팸 필터 — URL 2개 이상 또는 스팸 키워드 포함 시 조용히 성공 처리 ── */
+function looks_spammy(string $text): bool
+{
+    if ((int) preg_match_all('#https?://|www\.#i', $text) >= 2) {
+        return true;
+    }
+    static $keywords = [
+        'viagra', 'cialis', 'casino', 'crypto airdrop', 'loan approved', 'click here to claim',
+        '비아그라', '시알리스', '카지노', '토토', '바카라', '대출광고', '성인용품', '도박사이트',
+    ];
+    foreach ($keywords as $kw) {
+        if (mb_stripos($text, $kw) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
+if (looks_spammy($name . ' ' . $message)) {
+    log_spam_block('content_filter', ['name' => $name, 'message_excerpt' => mb_substr($message, 0, 100)]);
+    respond(200, ['ok' => true, 'message' => '접수되었습니다.']);
 }
 
 /* ── 메일 본문 구성 (모든 사용자 입력은 이스케이프) ───────────────────── */
