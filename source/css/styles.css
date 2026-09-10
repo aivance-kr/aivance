@@ -40,6 +40,8 @@
     --cassa:#16A34A;  --cassa-600:#15803D;  --cassa-50:#DCFCE7;
     --tessera:#0EA5E9; --tessera-600:#0369A1; --tessera-50:#E0F2FE;
     --picto:#F97316;  --picto-600:#C2410C;  --picto-50:#FFF1E5;
+    --fid:#4F46E5;    --fid-600:#4338CA;    --fid-50:#EEF2FF;
+    --lign:#A16207;   --lign-600:#854D0E;   --lign-50:#FEF3C7;
 
     /* 구식 -500 별칭 (아래 레거시 규칙 호환용) */
     --cura-500:var(--cura); --copia-500:var(--copia); --creo-500:var(--creo);
