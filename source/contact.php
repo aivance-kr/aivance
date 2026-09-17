@@ -231,7 +231,12 @@ function turnstile_verify(string $token, string $ip): bool
         return false;
     }
     $json = json_decode((string) $res, true);
-    return is_array($json) && ($json['success'] ?? false) === true;
+    $ok = is_array($json) && ($json['success'] ?? false) === true;
+    if (!$ok) {
+        $codes = is_array($json) ? implode(',', (array) ($json['error-codes'] ?? [])) : 'invalid_response';
+        error_log('contact.php: turnstile 검증 실패 (error-codes=' . $codes . ')');
+    }
+    return $ok;
 }
 
 $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
