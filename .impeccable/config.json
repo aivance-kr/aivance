@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "source/consulting.html"
+        ],
+        "createdAt": "2026-09-17T22:24:03.213Z",
+        "reason": "Agent: matches sitewide --shadow-focus token (0 0 0 3px rgba(37,99,235,.35)) used only on :focus-visible for keyboard a11y, not a decorative glow; removing it would break visible focus indicators on the dark contact form"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "source/consulting.html"
+        ],
+        "createdAt": "2026-09-17T22:33:50.930Z",
+        "reason": "Agent: remaining low-contrast hit is a false positive — .consulting-contact p (--slate-400 #94a3b8) renders on the dark .consulting-contact section bg #1E2A38, not white; verified in-browser at 5.67:1 (passes AA). Detector misresolves nested dark-section background."
+      }
+    ]
+  }
+}
