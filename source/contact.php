@@ -168,10 +168,40 @@ if ($issuedAt > 0 && (time() - $issuedAt) < 3) {
     respond(200, ['ok' => true, 'message' => '접수되었습니다.']);
 }
 
-/* ── CSRF 검증 ────────────────────────────────────────────────────────── */
+/* ── Origin/Referer 강제 검증 — CORS 헤더는 브라우저 표시용일 뿐 서버 처리를 막지 않으므로
+ * 직접 curl/스크립트로 쏘는 POST 를 여기서 실제로 차단한다 ─────────────────────────── */
+$referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+$originOk = $requestOrigin !== '' && in_array($requestOrigin, $allowedOrigins, true);
+$refererOk = $referer !== '' && array_reduce(
+    $allowedOrigins,
+    static fn (bool $ok, string $o) => $ok || str_starts_with($referer, $o . '/') || $referer === $o,
+    false
+);
+if (!$originOk && !$refererOk) {
+    log_spam_block('origin_mismatch', ['origin' => $requestOrigin, 'referer' => $referer]);
+    respond(403, ['ok' => false, 'error' => '허용되지 않은 요청입니다.']);
+}
+
+/* ── User-Agent 검증 — 비어있거나 스크립트/툴 UA 는 즉시 차단 ─────────────────────── */
+$userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+$botUaPatterns = ['curl', 'wget', 'python-requests', 'python-urllib', 'go-http-client', 'postmanruntime', 'axios', 'okhttp', 'scrapy', 'sqlmap', 'libwww-perl'];
+if ($userAgent === '') {
+    log_spam_block('empty_user_agent');
+    respond(403, ['ok' => false, 'error' => '허용되지 않은 요청입니다.']);
+}
+foreach ($botUaPatterns as $pat) {
+    if (stripos($userAgent, $pat) !== false) {
+        log_spam_block('bot_user_agent', ['ua' => $userAgent]);
+        respond(403, ['ok' => false, 'error' => '허용되지 않은 요청입니다.']);
+    }
+}
+
+/* ── CSRF 검증 (1회용) — 검증 성공 여부와 무관하게 토큰은 즉시 폐기해 재사용을 막는다 ── */
 $sentToken = field($data, 'csrf_token') ?: (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
 $sessToken = (string) ($_SESSION['csrf_token'] ?? '');
-if ($sessToken === '' || $sentToken === '' || !hash_equals($sessToken, $sentToken)) {
+$tokenAge = time() - (int) ($_SESSION['csrf_issued_at'] ?? 0);
+unset($_SESSION['csrf_token'], $_SESSION['csrf_issued_at']);
+if ($sessToken === '' || $sentToken === '' || !hash_equals($sessToken, $sentToken) || $tokenAge > 1800) {
     respond(419, ['ok' => false, 'error' => '보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.']);
 }
 
@@ -179,6 +209,12 @@ if ($sessToken === '' || $sentToken === '' || !hash_equals($sessToken, $sentToke
 $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
 if ($clientIp === '' || !rl_allow($clientIp, 60, 5)) {
     log_spam_block('rate_limit');
+    respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
+}
+
+/* ── 사이트 전체 레이트리밋 (요청 간 최소 2초 · 시간당 최대 30회) — IP 분산(봇넷) 공격의 전체 볼륨 상한 ── */
+if (!rl_allow('__global__', 2, 30)) {
+    log_spam_block('global_rate_limit');
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
 }
 
@@ -199,8 +235,8 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 if ($phone !== '' && !preg_match('/^[0-9()+\-\s]{6,20}$/', $phone)) {
     $errors['phone'] = '연락처 형식을 확인해 주세요.';
 }
-if ($message === '' || mb_strlen($message) < 5) {
-    $errors['message'] = '문의 내용을 5자 이상 입력해 주세요.';
+if ($message === '' || mb_strlen($message) < 5 || mb_strlen($message) > 5000) {
+    $errors['message'] = '문의 내용을 5자 이상 5000자 이하로 입력해 주세요.';
 }
 $allowedProducts = ['AICura', 'AICopia', 'AICreo', '기타 / 미정'];
 if ($product !== '' && !in_array($product, $allowedProducts, true)) {
@@ -208,6 +244,18 @@ if ($product !== '' && !in_array($product, $allowedProducts, true)) {
 }
 if ($errors) {
     respond(422, ['ok' => false, 'error' => '입력값을 확인해 주세요.', 'fields' => $errors]);
+}
+
+/* ── 일회용/스팸용 이메일 도메인 차단 ─────────────────────────────────── */
+$disposableDomains = [
+    'mailinator.com', 'guerrillamail.com', 'guerrillamail.info', '10minutemail.com',
+    'tempmail.com', 'temp-mail.org', 'yopmail.com', 'trashmail.com', 'throwawaymail.com',
+    'getnada.com', 'discard.email', 'fakeinbox.com', 'sharklasers.com', 'maildrop.cc',
+];
+$emailDomain = strtolower(substr((string) strrchr($email, '@'), 1));
+if (in_array($emailDomain, $disposableDomains, true)) {
+    log_spam_block('disposable_email', ['domain' => $emailDomain]);
+    respond(200, ['ok' => true, 'message' => '접수되었습니다.']);
 }
 
 /* ── 내용 스팸 필터 — URL 2개 이상 또는 스팸 키워드 포함 시 조용히 성공 처리 ── */
