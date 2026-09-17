@@ -19,7 +19,7 @@
     /* 텍스트 */
     --text-strong:#0F172A;
     --text-body:#334155;
-    --text-muted:#64748B;
+    --text-muted:#54637C;
     --text-subtle:#94A3B8;
 
     /* 배경·보더 */
@@ -33,7 +33,7 @@
     --aiv-blue-50:#EFF5FF;
 
     /* 제품 액센트 */
-    --cura:#12B3A6;   --cura-600:#0E9488;   --cura-50:#E7FBF8;
+    --cura:#12B3A6;   --cura-600:#0C8478;   --cura-50:#E7FBF8;
     --copia:#7C3AED;  --copia-600:#6D28D9;  --copia-50:#F3EBFF;
     --creo:#F0568C;   --creo-600:#DB2F72;   --creo-50:#FEECF3;
     --licet:#F59E0B;  --licet-600:#B45309;  --licet-50:#FEF3C7;
@@ -211,9 +211,6 @@ img { max-width: 100%; display: block; }
   transition: box-shadow var(--dur-base), transform var(--dur-base);
 }
 .card--interactive:hover { box-shadow: var(--shadow-lg); transform: var(--lift); }
-.card--accent-cura  { border-top: 3px solid var(--cura-500); }
-.card--accent-copia { border-top: 3px solid var(--copia-500); }
-.card--accent-creo  { border-top: 3px solid var(--creo-500); }
 
 .chip {
   font-size: 12px; color: var(--text-body);
@@ -264,7 +261,7 @@ img { max-width: 100%; display: block; }
 .stat-label { font-size: 13px; color: var(--text-muted); }
 
 /* ─── Sections ────────────────────────────────────────────────────────── */
-.section { padding: 84px 0; }
+.section { padding-top: 84px; padding-bottom: 84px; }
 .section-center { text-align: center; margin-bottom: 48px; }
 
 .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -344,15 +341,8 @@ img { max-width: 100%; display: block; }
 .why-seo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
 .why-seo-card {
   background: #fff; border: 1px solid var(--border-default);
-  border-radius: var(--radius-md); padding: 18px 20px; border-top: 3px solid var(--brand);
+  border-radius: var(--radius-md); padding: 18px 20px;
 }
-.why-seo-card--cura    { border-top-color: var(--cura-500); }
-.why-seo-card--copia   { border-top-color: var(--copia-500); }
-.why-seo-card--creo    { border-top-color: var(--creo-500); }
-.why-seo-card--licet   { border-top-color: var(--licet); }
-.why-seo-card--cassa   { border-top-color: var(--cassa); }
-.why-seo-card--tessera { border-top-color: var(--tessera); }
-.why-seo-card--picto   { border-top-color: var(--picto); }
 .wsc-head { font-weight: 700; color: var(--text-strong); font-size: 15px; margin-bottom: 8px; }
 .wsc-head i { margin-right: 4px; }
 .why-seo-card--cura    .wsc-head i { color: var(--cura-600); }
@@ -378,7 +368,7 @@ img { max-width: 100%; display: block; }
 .tech { padding: 72px 0; text-align: center; }
 .tech-eyebrow {
   font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--text-subtle); font-weight: 700; margin-bottom: 20px;
+  color: var(--text-muted); font-weight: 700; margin-bottom: 20px;
 }
 .tech-tags { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .tech-tag {
@@ -413,7 +403,7 @@ img { max-width: 100%; display: block; }
 .faq-item summary::-webkit-details-marker { display: none; }
 .faq-item summary::after {
   content: "\F282"; font-family: "bootstrap-icons"; margin-left: auto;
-  font-size: 15px; color: var(--text-subtle); transition: transform var(--dur-base);
+  font-size: 15px; color: var(--text-muted); transition: transform var(--dur-base);
 }
 .faq-item[open] summary::after { transform: rotate(180deg); }
 .faq-item summary:hover { color: var(--brand); }
@@ -455,7 +445,7 @@ img { max-width: 100%; display: block; }
   background: #fff; border: 1px solid var(--border-default); border-radius: var(--radius-sm);
   transition: border-color var(--dur-base), box-shadow var(--dur-base);
 }
-.form-control::placeholder { color: var(--text-subtle); }
+.form-control::placeholder { color: var(--text-muted); }
 .form-control:focus { outline: none; border-color: var(--border-focus); box-shadow: var(--shadow-focus); }
 textarea.form-control { resize: vertical; min-height: 120px; }
 .form-error { display: block; font-size: 12px; color: var(--danger-500); margin-top: 5px; min-height: 0; }
@@ -495,12 +485,12 @@ textarea.form-control { resize: vertical; min-height: 120px; }
   gap: 8px 16px; justify-content: end; align-items: baseline;
 }
 .fc-item { display: contents; }
-.fc-label { font-size: 12px; color: var(--text-subtle); text-align: right; white-space: nowrap; }
+.fc-label { font-size: 12px; color: var(--text-muted); text-align: right; white-space: nowrap; }
 .fc-label i { color: var(--brand); margin-right: 3px; }
 .fc-value { font-size: 13px; font-weight: 600; color: var(--text-body); text-align: right; }
 a.fc-value:hover { color: var(--brand); }
 .footer-copy {
-  font-size: 13px; color: var(--text-subtle); text-align: center;
+  font-size: 13px; color: var(--text-muted); text-align: center;
   border-top: 1px solid var(--border-subtle); padding-top: 16px;
 }
 
