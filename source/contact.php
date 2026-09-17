@@ -222,8 +222,8 @@ function turnstile_verify(string $token, string $ip): array
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query(['secret' => $secret, 'response' => $token, 'remoteip' => $ip]),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 5,
-        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 3,
+        CURLOPT_CONNECTTIMEOUT => 3,
     ]);
     $res = curl_exec($ch);
     $err = curl_errno($ch);
@@ -240,14 +240,9 @@ function turnstile_verify(string $token, string $ip): array
 }
 
 $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
-$turnstileToken = field($data, 'cf-turnstile-response');
-$turnstileResult = turnstile_verify($turnstileToken, $clientIp);
-if (!$turnstileResult['ok']) {
-    log_spam_block('turnstile_failed', ['detail' => $turnstileResult['detail']]);
-    respond(403, ['ok' => false, 'error' => '사람 확인에 실패했습니다. 다시 시도해 주세요.']);
-}
 
-/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — 세션 초기화로 우회 못하게 IP 로 고정 ── */
+/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — Turnstile(네트워크 호출, 최대 5초 블로킹)보다
+ * 먼저 검사해서 반복 요청이 PHP-FPM 워커를 붙잡고 있지 않게 한다 ── */
 if ($clientIp === '' || !rl_allow($clientIp, 60, 5)) {
     log_spam_block('rate_limit');
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
@@ -257,6 +252,13 @@ if ($clientIp === '' || !rl_allow($clientIp, 60, 5)) {
 if (!rl_allow('__global__', 2, 30)) {
     log_spam_block('global_rate_limit');
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
+}
+
+$turnstileToken = field($data, 'cf-turnstile-response');
+$turnstileResult = turnstile_verify($turnstileToken, $clientIp);
+if (!$turnstileResult['ok']) {
+    log_spam_block('turnstile_failed', ['detail' => $turnstileResult['detail']]);
+    respond(403, ['ok' => false, 'error' => '사람 확인에 실패했습니다. 다시 시도해 주세요.']);
 }
 
 /* ── 입력 검증 ────────────────────────────────────────────────────────── */
