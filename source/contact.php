@@ -205,16 +205,17 @@ if ($sessToken === '' || $sentToken === '' || !hash_equals($sessToken, $sentToke
     respond(419, ['ok' => false, 'error' => '보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.']);
 }
 
-/* ── Cloudflare Turnstile 검증 — 사람만 통과할 수 있는 챌린지 (siteverify API 호출) ── */
-function turnstile_verify(string $token, string $ip): bool
+/* ── Cloudflare Turnstile 검증 — 사람만 통과할 수 있는 챌린지 (siteverify API 호출) ──
+ * error_log() 는 호스팅 환경에 따라 어디로 가는지 알 수 없어 신뢰할 수 없으므로,
+ * 실패 사유는 반드시 파일에 직접 쓰는 log_spam_block() 으로만 남긴다. */
+function turnstile_verify(string $token, string $ip): array
 {
     $secret = env_val('TURNSTILE_SECRET_KEY');
     if ($secret === '') {
-        error_log('contact.php: TURNSTILE_SECRET_KEY 미설정 (.env 확인) — 검증 스킵 금지, 요청 거부');
-        return false;
+        return ['ok' => false, 'detail' => 'secret_not_configured'];
     }
     if ($token === '') {
-        return false;
+        return ['ok' => false, 'detail' => 'empty_token'];
     }
     $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
     curl_setopt_array($ch, [
@@ -227,22 +228,22 @@ function turnstile_verify(string $token, string $ip): bool
     $res = curl_exec($ch);
     $err = curl_errno($ch);
     if ($err !== 0 || $res === false) {
-        error_log('contact.php: turnstile siteverify 호출 실패 (errno=' . $err . ')');
-        return false;
+        return ['ok' => false, 'detail' => 'curl_error_' . $err];
     }
     $json = json_decode((string) $res, true);
     $ok = is_array($json) && ($json['success'] ?? false) === true;
-    if (!$ok) {
-        $codes = is_array($json) ? implode(',', (array) ($json['error-codes'] ?? [])) : 'invalid_response';
-        error_log('contact.php: turnstile 검증 실패 (error-codes=' . $codes . ')');
+    if ($ok) {
+        return ['ok' => true, 'detail' => ''];
     }
-    return $ok;
+    $codes = is_array($json) ? implode(',', (array) ($json['error-codes'] ?? [])) : 'invalid_response';
+    return ['ok' => false, 'detail' => $codes];
 }
 
 $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
 $turnstileToken = field($data, 'cf-turnstile-response');
-if (!turnstile_verify($turnstileToken, $clientIp)) {
-    log_spam_block('turnstile_failed');
+$turnstileResult = turnstile_verify($turnstileToken, $clientIp);
+if (!$turnstileResult['ok']) {
+    log_spam_block('turnstile_failed', ['detail' => $turnstileResult['detail']]);
     respond(403, ['ok' => false, 'error' => '사람 확인에 실패했습니다. 다시 시도해 주세요.']);
 }
 
