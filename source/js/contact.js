@@ -43,6 +43,8 @@
     submitBtn.dataset.label = submitBtn.textContent;
     submitBtn.textContent = '전송 중…';
 
+    var turnstileInput = form.querySelector('input[name="cf-turnstile-response"]');
+
     var payload = {
       csrf_token: tokenInput.value,
       company_url: form.querySelector('input[name="company_url"]').value, // 허니팟
@@ -50,7 +52,8 @@
       email: form.email.value,
       phone: form.phone.value,
       product: form.product.value,
-      message: form.message.value
+      message: form.message.value,
+      'cf-turnstile-response': turnstileInput ? turnstileInput.value : ''
     };
 
     fetch('contact.php', {
@@ -82,6 +85,7 @@
       .finally(function () {
         submitBtn.disabled = false;
         submitBtn.textContent = submitBtn.dataset.label || '문의 보내기';
+        if (window.turnstile) window.turnstile.reset(); // 토큰은 1회용이라 매 제출 후 새로 발급받아야 함
       });
   });
 })();

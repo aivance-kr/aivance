@@ -205,8 +205,43 @@ if ($sessToken === '' || $sentToken === '' || !hash_equals($sessToken, $sentToke
     respond(419, ['ok' => false, 'error' => '보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.']);
 }
 
-/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — 세션 초기화로 우회 못하게 IP 로 고정 ── */
+/* ── Cloudflare Turnstile 검증 — 사람만 통과할 수 있는 챌린지 (siteverify API 호출) ── */
+function turnstile_verify(string $token, string $ip): bool
+{
+    $secret = env_val('TURNSTILE_SECRET_KEY');
+    if ($secret === '') {
+        error_log('contact.php: TURNSTILE_SECRET_KEY 미설정 (.env 확인) — 검증 스킵 금지, 요청 거부');
+        return false;
+    }
+    if ($token === '') {
+        return false;
+    }
+    $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query(['secret' => $secret, 'response' => $token, 'remoteip' => $ip]),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 5,
+        CURLOPT_CONNECTTIMEOUT => 5,
+    ]);
+    $res = curl_exec($ch);
+    $err = curl_errno($ch);
+    if ($err !== 0 || $res === false) {
+        error_log('contact.php: turnstile siteverify 호출 실패 (errno=' . $err . ')');
+        return false;
+    }
+    $json = json_decode((string) $res, true);
+    return is_array($json) && ($json['success'] ?? false) === true;
+}
+
 $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+$turnstileToken = field($data, 'cf-turnstile-response');
+if (!turnstile_verify($turnstileToken, $clientIp)) {
+    log_spam_block('turnstile_failed');
+    respond(403, ['ok' => false, 'error' => '사람 확인에 실패했습니다. 다시 시도해 주세요.']);
+}
+
+/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — 세션 초기화로 우회 못하게 IP 로 고정 ── */
 if ($clientIp === '' || !rl_allow($clientIp, 60, 5)) {
     log_spam_block('rate_limit');
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
