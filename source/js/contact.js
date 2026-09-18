@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var RECAPTCHA_SITE_KEY = 'RECAPTCHA_SITE_KEY_HERE';
+  var RECAPTCHA_SITE_KEY = '6Ld0rsEtAAAAALYH0-QOjqHa5m5hRCVnBN7lyrHq';
 
   var form = document.getElementById('contact-form');
   if (!form) return;
