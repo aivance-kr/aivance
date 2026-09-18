@@ -1,10 +1,9 @@
 {
     "name": "aivance/homepage-contact",
-    "description": "AIvance 홈페이지 도입 문의 폼 — Zoho SMTP 메일 발송 엔드포인트",
+    "description": "AIvance 홈페이지 도입 문의 폼 — Brevo API 메일 발송 엔드포인트",
     "type": "project",
     "require": {
         "php": ">=8.1",
-        "phpmailer/phpmailer": "^6.9",
         "vlucas/phpdotenv": "^5.6"
     },
     "config": {
