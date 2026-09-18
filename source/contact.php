@@ -41,6 +41,17 @@ function env_val(string $key, string $default = ''): string
     return ($v === false || $v === null || $v === '') ? $default : (string) $v;
 }
 
+/* 사이트가 Cloudflare 프록시 뒤에 있어 REMOTE_ADDR은 항상 Cloudflare 엣지 IP임 —
+ * 레이트리밋·Turnstile remoteip·로그가 실제 방문자 기준으로 동작하려면 CF-Connecting-IP를 써야 한다. */
+function client_ip(): string
+{
+    $cf = (string) ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? '');
+    if ($cf !== '' && filter_var($cf, FILTER_VALIDATE_IP)) {
+        return $cf;
+    }
+    return (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+}
+
 /* ── 공통 응답 유틸 ───────────────────────────────────────────────────── */
 /* CORS: 콤마로 구분된 허용 오리진 목록 중 요청 Origin 과 일치할 때만 echo-back.
  * 와일드카드(*)는 Allow-Credentials:true 와 함께 쓰면 스펙 위반(브라우저 무시)이고
@@ -56,6 +67,9 @@ if ($requestOrigin !== '' && in_array($requestOrigin, $allowedOrigins, true)) {
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('X-Content-Type-Options: nosniff');
+/* 세션 쿠키를 실어 보내는 응답이라 CDN/브라우저가 캐싱하면 방문자끼리 세션이 섞일 수 있다 */
+header('Cache-Control: no-store, no-cache, must-revalidate, private');
+header('Pragma: no-cache');
 
 /** JSON 응답 후 종료. */
 function respond(int $status, array $payload): never
@@ -148,7 +162,7 @@ function log_spam_block(string $reason, array $extra = []): void
     $line = sprintf(
         "[%s] ip=%s reason=%s %s\n",
         date('c'),
-        (string) ($_SERVER['REMOTE_ADDR'] ?? '-'),
+        client_ip() ?: '-',
         $reason,
         json_encode($extra, JSON_UNESCAPED_UNICODE)
     );
@@ -239,7 +253,7 @@ function turnstile_verify(string $token, string $ip): array
     return ['ok' => false, 'detail' => $codes];
 }
 
-$clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+$clientIp = client_ip();
 
 /* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — Turnstile(네트워크 호출, 최대 5초 블로킹)보다
  * 먼저 검사해서 반복 요청이 PHP-FPM 워커를 붙잡고 있지 않게 한다 ── */
@@ -326,7 +340,7 @@ if (looks_spammy($name . ' ' . $message)) {
 /* ── 메일 본문 구성 (모든 사용자 입력은 이스케이프) ───────────────────── */
 $esc = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 $submittedAt = date('Y-m-d H:i:s');
-$ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+$ip = $clientIp;
 
 $rowsHtml = '';
 foreach ([
