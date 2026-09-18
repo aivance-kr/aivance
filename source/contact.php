@@ -279,8 +279,8 @@ function recaptcha_verify(string $token, string $ip): array
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query(['secret' => $secret, 'response' => $token, 'remoteip' => $ip]),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 3,
-        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_TIMEOUT => 2,
+        CURLOPT_CONNECTTIMEOUT => 2,
     ]);
     $res = curl_exec($ch);
     $err = curl_errno($ch);
@@ -305,15 +305,17 @@ function recaptcha_verify(string $token, string $ip): array
 
 $clientIp = client_ip();
 
-/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — reCAPTCHA(네트워크 호출, 최대 3초 블로킹)보다
+/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — reCAPTCHA(네트워크 호출, 최대 2초 블로킹)보다
  * 먼저 검사해서 반복 요청이 PHP-FPM 워커를 붙잡고 있지 않게 한다 ── */
 if ($clientIp === '' || !rl_allow($clientIp, 60, 5)) {
     log_spam_block('rate_limit');
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
 }
 
-/* ── 사이트 전체 레이트리밋 (요청 간 최소 2초 · 시간당 최대 30회) — IP 분산(봇넷) 공격의 전체 볼륨 상한 ── */
-if (!rl_allow('__global__', 2, 30)) {
+/* ── 사이트 전체 레이트리밋 (요청 간 최소 3초 · 시간당 최대 30회) — IP 분산(봇넷) 공격의 전체 볼륨 상한.
+ * 최소 간격을 아래 reCAPTCHA cURL 타임아웃(2초)보다 길게 잡아, 동시에 두 요청이 겹쳐서
+ * PHP-FPM 워커를 동시에 붙잡는 상황 자체가 구조적으로 발생하지 않게 한다 ── */
+if (!rl_allow('__global__', 3, 30)) {
     log_spam_block('global_rate_limit');
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
 }
