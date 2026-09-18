@@ -1,6 +1,6 @@
 <?php
 /**
- * AIvance — 도입 문의 폼 엔드포인트 (Gmail SMTP)
+ * AIvance — 도입 문의 폼 엔드포인트 (Brevo API)
  *
  *  GET  /contact.php?action=token   → CSRF 토큰 발급 (세션 저장 + JSON 반환)
  *  POST /contact.php                → 문의 접수 후 advisor@aivance.kr 로 메일 발송
@@ -10,8 +10,6 @@
 
 declare(strict_types=1);
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception as MailException;
 use Dotenv\Dotenv;
 
 require __DIR__ . '/vendor/autoload.php';
@@ -279,8 +277,8 @@ function recaptcha_verify(string $token, string $ip): array
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query(['secret' => $secret, 'response' => $token, 'remoteip' => $ip]),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 3,
-        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_TIMEOUT => 2,
+        CURLOPT_CONNECTTIMEOUT => 2,
     ]);
     $res = curl_exec($ch);
     $err = curl_errno($ch);
@@ -305,15 +303,17 @@ function recaptcha_verify(string $token, string $ip): array
 
 $clientIp = client_ip();
 
-/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — reCAPTCHA(네트워크 호출, 최대 3초 블로킹)보다
+/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — reCAPTCHA(네트워크 호출, 최대 2초 블로킹)보다
  * 먼저 검사해서 반복 요청이 PHP-FPM 워커를 붙잡고 있지 않게 한다 ── */
 if ($clientIp === '' || !rl_allow($clientIp, 60, 5)) {
     log_spam_block('rate_limit');
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
 }
 
-/* ── 사이트 전체 레이트리밋 (요청 간 최소 2초 · 시간당 최대 30회) — IP 분산(봇넷) 공격의 전체 볼륨 상한 ── */
-if (!rl_allow('__global__', 2, 30)) {
+/* ── 사이트 전체 레이트리밋 (요청 간 최소 3초 · 시간당 최대 30회) — IP 분산(봇넷) 공격의 전체 볼륨 상한.
+ * 최소 간격을 아래 reCAPTCHA cURL 타임아웃(2초)보다 길게 잡아, 동시에 두 요청이 겹쳐서
+ * PHP-FPM 워커를 동시에 붙잡는 상황 자체가 구조적으로 발생하지 않게 한다 ── */
+if (!rl_allow('__global__', 3, 30)) {
     log_spam_block('global_rate_limit');
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
 }
@@ -419,44 +419,70 @@ $textBody = "새 도입 문의\n\n"
     . "관심 제품: " . ($product ?: '-') . "\n접수 시각: {$submittedAt}\n요청 IP: {$ip}\n\n"
     . "문의 내용:\n{$message}\n";
 
-/* ── Gmail SMTP 발송 ──────────────────────────────────────────────────── */
-$smtpUser = env_val('SMTP_USER');
-$smtpPass = env_val('SMTP_PASS');
-$mailFrom = env_val('MAIL_FROM', $smtpUser);
-$mailTo   = env_val('MAIL_TO', 'advisor@aivance.kr');
+/* ── Brevo(구 Sendinblue) API 발송 — SMTP 대신 HTTPS API 호출, 별도 라이브러리 없이 cURL 직접 사용 ──
+ * error_log() 는 호스팅 환경에 따라 어디로 가는지 알 수 없어 신뢰할 수 없으므로,
+ * 실패 사유는 반드시 파일에 직접 쓴다. */
+function mail_log_error(string $line): void
+{
+    $dir = __DIR__ . '/writable/logs';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    file_put_contents(
+        $dir . '/mail-failed-' . date('Y-m-d') . '.log',
+        sprintf("[%s] %s\n", date('c'), $line),
+        FILE_APPEND | LOCK_EX
+    );
+}
 
-if ($smtpUser === '' || $smtpPass === '') {
-    error_log('contact.php: SMTP 자격증명 미설정 (.env 확인)');
+function brevo_send(string $apiKey, array $payload): array
+{
+    $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => [
+            'api-key: ' . $apiKey,
+            'Content-Type: application/json',
+            'Accept: application/json',
+        ],
+        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 8,
+        CURLOPT_CONNECTTIMEOUT => 5,
+    ]);
+    $res = curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_errno($ch);
+    if ($err !== 0 || $res === false) {
+        return ['ok' => false, 'detail' => 'curl_error_' . $err];
+    }
+    if ($status >= 200 && $status < 300) {
+        return ['ok' => true, 'detail' => ''];
+    }
+    return ['ok' => false, 'detail' => 'http_' . $status . ':' . substr((string) $res, 0, 300)];
+}
+
+$brevoApiKey = env_val('BREVO_API_KEY');
+$mailFrom    = env_val('MAIL_FROM');
+$mailTo      = env_val('MAIL_TO', 'advisor@aivance.kr');
+
+if ($brevoApiKey === '' || $mailFrom === '') {
+    mail_log_error('BREVO_API_KEY 또는 MAIL_FROM 미설정 (.env 확인)');
     respond(500, ['ok' => false, 'error' => '메일 설정이 완료되지 않았습니다. 관리자에게 문의해 주세요.']);
 }
 
-$mail = new PHPMailer(true);
-try {
-    $mail->isSMTP();
-    $mail->Host       = env_val('SMTP_HOST', 'smtp.gmail.com');
-    $mail->SMTPAuth   = true;
-    $mail->Username   = $smtpUser;
-    $mail->Password   = $smtpPass;
-    $mail->Port       = (int) env_val('SMTP_PORT', '465');
-    $mail->CharSet    = 'UTF-8';
-    $secure = strtolower(env_val('SMTP_SECURE', 'ssl'));
-    $mail->SMTPSecure = $secure === 'tls'
-        ? PHPMailer::ENCRYPTION_STARTTLS
-        : PHPMailer::ENCRYPTION_SMTPS;
+$mailResult = brevo_send($brevoApiKey, [
+    'sender' => ['name' => env_val('MAIL_FROM_NAME', 'AIvance 홈페이지 문의'), 'email' => $mailFrom],
+    'to' => [['email' => $mailTo]],
+    'replyTo' => ['email' => $email, 'name' => $name],   // 회신 시 문의자에게
+    'subject' => '[AIvance 문의] ' . ($product !== '' ? $product . ' · ' : '') . $name,
+    'htmlContent' => $htmlBody,
+    'textContent' => $textBody,
+]);
 
-    $mail->setFrom($mailFrom, env_val('MAIL_FROM_NAME', 'AIvance 홈페이지 문의'));
-    $mail->addAddress($mailTo);
-    $mail->addReplyTo($email, $name);   // 회신 시 문의자에게
-
-    $mail->isHTML(true);
-    $mail->Subject = '[AIvance 문의] ' . ($product !== '' ? $product . ' · ' : '') . $name;
-    $mail->Body    = $htmlBody;
-    $mail->AltBody = $textBody;
-
-    $mail->send();
-
-    respond(200, ['ok' => true, 'message' => '문의가 정상 접수되었습니다. 영업일 기준 1일 내 회신드리겠습니다.']);
-} catch (MailException $e) {
-    error_log('contact.php mail error: ' . $mail->ErrorInfo);
+if (!$mailResult['ok']) {
+    mail_log_error('brevo send 실패: ' . $mailResult['detail']);
     respond(502, ['ok' => false, 'error' => '메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.']);
 }
+
+respond(200, ['ok' => true, 'message' => '문의가 정상 접수되었습니다. 영업일 기준 1일 내 회신드리겠습니다.']);
