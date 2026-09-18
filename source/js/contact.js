@@ -2,6 +2,8 @@
 (function () {
   'use strict';
 
+  var RECAPTCHA_SITE_KEY = 'RECAPTCHA_SITE_KEY_HERE';
+
   var form = document.getElementById('contact-form');
   if (!form) return;
 
@@ -20,20 +22,6 @@
   }
   loadToken();
 
-  /* Turnstile 위젯이 검증을 마치기 전엔 제출 버튼을 눌러도 토큰이 비어 서버에서 거부됨 —
-   * 완료 전까지 버튼을 막는다. Turnstile api.js는 async라 로드/실행 순서를 보장할 수 없어
-   * data-callback 이름 참조 대신 히든 인풋 값을 직접 폴링해서 동기화한다. */
-  submitBtn.disabled = true;
-  submitBtn.dataset.label = submitBtn.textContent;
-  submitBtn.textContent = '보안 확인 중…';
-  setInterval(function () {
-    if (submitting) return;
-    var t = form.querySelector('input[name="cf-turnstile-response"]');
-    var ready = !!(t && t.value);
-    submitBtn.disabled = !ready;
-    submitBtn.textContent = ready ? submitBtn.dataset.label : '보안 확인 중…';
-  }, 400);
-
   function showAlert(type, msg) {
     alertBox.className = 'form-alert show ' + type;
     alertBox.innerHTML =
@@ -49,21 +37,7 @@
     });
   }
 
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    clearErrors();
-    alertBox.className = 'form-alert';
-
-    var turnstileInput = form.querySelector('input[name="cf-turnstile-response"]');
-    if (!turnstileInput || !turnstileInput.value) {
-      showAlert('error', '보안 확인이 아직 끝나지 않았습니다. 잠시 후 다시 시도해 주세요.');
-      return;
-    }
-
-    submitting = true;
-    submitBtn.disabled = true;
-    submitBtn.textContent = '전송 중…';
-
+  function submitWithToken(recaptchaToken) {
     var payload = {
       csrf_token: tokenInput.value,
       company_url: form.querySelector('input[name="company_url"]').value, // 허니팟
@@ -72,7 +46,7 @@
       phone: form.phone.value,
       product: form.product.value,
       message: form.message.value,
-      'cf-turnstile-response': turnstileInput ? turnstileInput.value : ''
+      'g-recaptcha-response': recaptchaToken
     };
 
     fetch('contact.php', {
@@ -103,9 +77,51 @@
       })
       .finally(function () {
         submitting = false;
-        if (window.turnstile) window.turnstile.reset(); // 토큰은 1회용이라 매 제출 후 새로 발급받아야 함
-        submitBtn.disabled = true; // 새 토큰이 나올 때까지 폴링이 다시 잠가둔다
-        submitBtn.textContent = '보안 확인 중…';
+        submitBtn.disabled = false;
+        submitBtn.textContent = submitBtn.dataset.label;
       });
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (submitting) return;
+    clearErrors();
+    alertBox.className = 'form-alert';
+
+    if (typeof grecaptcha === 'undefined' || !grecaptcha.execute) {
+      showAlert('error', '보안 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
+      return;
+    }
+
+    submitting = true;
+    submitBtn.disabled = true;
+    submitBtn.dataset.label = submitBtn.dataset.label || submitBtn.textContent;
+    submitBtn.textContent = '전송 중…';
+
+    var timedOut = false;
+    var timeoutId = setTimeout(function () {
+      timedOut = true;
+      submitting = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = submitBtn.dataset.label;
+      showAlert('error', '보안 확인 응답이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.');
+    }, 8000);
+
+    grecaptcha.ready(function () {
+      grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'contact_submit' })
+        .then(function (token) {
+          if (timedOut) return;
+          clearTimeout(timeoutId);
+          submitWithToken(token);
+        })
+        .catch(function () {
+          if (timedOut) return;
+          clearTimeout(timeoutId);
+          submitting = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = submitBtn.dataset.label;
+          showAlert('error', '보안 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        });
+    });
   });
 })();
