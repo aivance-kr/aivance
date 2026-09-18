@@ -41,15 +41,58 @@ function env_val(string $key, string $default = ''): string
     return ($v === false || $v === null || $v === '') ? $default : (string) $v;
 }
 
-/* 사이트가 Cloudflare 프록시 뒤에 있어 REMOTE_ADDR은 항상 Cloudflare 엣지 IP임 —
- * 레이트리밋·Turnstile remoteip·로그가 실제 방문자 기준으로 동작하려면 CF-Connecting-IP를 써야 한다. */
+/* Cloudflare 공식 엣지 IP 대역 (https://www.cloudflare.com/ips/) — CF-Connecting-IP 헤더는
+ * 실제 연결이 이 대역에서 온 경우에만 신뢰한다. 그렇지 않으면 서버에 직접 요청을 보내면서
+ * 헤더만 위조해 레이트리밋·로그의 IP를 속일 수 있다. */
+const CLOUDFLARE_CIDRS = [
+    '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+    '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+    '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+    '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+    '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
+    '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32',
+];
+
+function ip_in_cidr(string $ip, string $cidr): bool
+{
+    [$subnet, $bits] = array_pad(explode('/', $cidr), 2, null);
+    $bits = (int) $bits;
+    $ipBin = @inet_pton($ip);
+    $subnetBin = @inet_pton($subnet);
+    if ($ipBin === false || $subnetBin === false || strlen($ipBin) !== strlen($subnetBin)) {
+        return false;
+    }
+    $bytes = intdiv($bits, 8);
+    $remBits = $bits % 8;
+    if ($bytes > 0 && substr($ipBin, 0, $bytes) !== substr($subnetBin, 0, $bytes)) {
+        return false;
+    }
+    if ($remBits === 0) {
+        return true;
+    }
+    $mask = chr((0xFF << (8 - $remBits)) & 0xFF);
+    return (substr($ipBin, $bytes, 1) & $mask) === (substr($subnetBin, $bytes, 1) & $mask);
+}
+
+function is_cloudflare_ip(string $ip): bool
+{
+    foreach (CLOUDFLARE_CIDRS as $cidr) {
+        if (ip_in_cidr($ip, $cidr)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** 실제 연결(REMOTE_ADDR)이 Cloudflare 대역에서 온 경우에만 CF-Connecting-IP 헤더를 신뢰한다. */
 function client_ip(): string
 {
+    $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
     $cf = (string) ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? '');
-    if ($cf !== '' && filter_var($cf, FILTER_VALIDATE_IP)) {
+    if ($cf !== '' && filter_var($cf, FILTER_VALIDATE_IP) && is_cloudflare_ip($remote)) {
         return $cf;
     }
-    return (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    return $remote;
 }
 
 /* ── 공통 응답 유틸 ───────────────────────────────────────────────────── */
@@ -219,19 +262,19 @@ if ($sessToken === '' || $sentToken === '' || !hash_equals($sessToken, $sentToke
     respond(419, ['ok' => false, 'error' => '보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.']);
 }
 
-/* ── Cloudflare Turnstile 검증 — 사람만 통과할 수 있는 챌린지 (siteverify API 호출) ──
+/* ── Google reCAPTCHA v3 검증 — 위젯/체크박스 없이 제출 순간에 토큰을 받아 점수로 판별 ──
  * error_log() 는 호스팅 환경에 따라 어디로 가는지 알 수 없어 신뢰할 수 없으므로,
  * 실패 사유는 반드시 파일에 직접 쓰는 log_spam_block() 으로만 남긴다. */
-function turnstile_verify(string $token, string $ip): array
+function recaptcha_verify(string $token, string $ip): array
 {
-    $secret = env_val('TURNSTILE_SECRET_KEY');
+    $secret = env_val('RECAPTCHA_SECRET_KEY');
     if ($secret === '') {
         return ['ok' => false, 'detail' => 'secret_not_configured'];
     }
     if ($token === '') {
         return ['ok' => false, 'detail' => 'empty_token'];
     }
-    $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query(['secret' => $secret, 'response' => $token, 'remoteip' => $ip]),
@@ -245,17 +288,24 @@ function turnstile_verify(string $token, string $ip): array
         return ['ok' => false, 'detail' => 'curl_error_' . $err];
     }
     $json = json_decode((string) $res, true);
-    $ok = is_array($json) && ($json['success'] ?? false) === true;
-    if ($ok) {
-        return ['ok' => true, 'detail' => ''];
+    if (!is_array($json) || ($json['success'] ?? false) !== true) {
+        $codes = is_array($json) ? implode(',', (array) ($json['error-codes'] ?? [])) : 'invalid_response';
+        return ['ok' => false, 'detail' => $codes];
     }
-    $codes = is_array($json) ? implode(',', (array) ($json['error-codes'] ?? [])) : 'invalid_response';
-    return ['ok' => false, 'detail' => $codes];
+    $score = (float) ($json['score'] ?? 0);
+    $action = (string) ($json['action'] ?? '');
+    if ($action !== 'contact_submit') {
+        return ['ok' => false, 'detail' => 'action_mismatch:' . $action];
+    }
+    if ($score < 0.5) {
+        return ['ok' => false, 'detail' => 'low_score:' . $score];
+    }
+    return ['ok' => true, 'detail' => ''];
 }
 
 $clientIp = client_ip();
 
-/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — Turnstile(네트워크 호출, 최대 5초 블로킹)보다
+/* ── IP 기준 요청 제한 (60초 1회 · 시간당 5회) — reCAPTCHA(네트워크 호출, 최대 3초 블로킹)보다
  * 먼저 검사해서 반복 요청이 PHP-FPM 워커를 붙잡고 있지 않게 한다 ── */
 if ($clientIp === '' || !rl_allow($clientIp, 60, 5)) {
     log_spam_block('rate_limit');
@@ -268,10 +318,10 @@ if (!rl_allow('__global__', 2, 30)) {
     respond(429, ['ok' => false, 'error' => '잠시 후 다시 시도해 주세요.']);
 }
 
-$turnstileToken = field($data, 'cf-turnstile-response');
-$turnstileResult = turnstile_verify($turnstileToken, $clientIp);
-if (!$turnstileResult['ok']) {
-    log_spam_block('turnstile_failed', ['detail' => $turnstileResult['detail']]);
+$recaptchaToken = field($data, 'g-recaptcha-response');
+$recaptchaResult = recaptcha_verify($recaptchaToken, $clientIp);
+if (!$recaptchaResult['ok']) {
+    log_spam_block('recaptcha_failed', ['detail' => $recaptchaResult['detail']]);
     respond(403, ['ok' => false, 'error' => '사람 확인에 실패했습니다. 다시 시도해 주세요.']);
 }
 
