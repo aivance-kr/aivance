@@ -336,7 +336,7 @@ $errors = [];
 if ($name === '' || mb_strlen($name) > 100) {
     $errors['name'] = '이름/회사명을 입력해 주세요.';
 }
-if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if ($email === '' || mb_strlen($email) > 254 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors['email'] = '올바른 이메일 주소를 입력해 주세요.';
 }
 if ($phone !== '' && !preg_match('/^[0-9()+\-\s]{6,20}$/', $phone)) {
