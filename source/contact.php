@@ -70,6 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'token')
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         $_SESSION['csrf_issued_at'] = time();
     }
+    /* 속도 트랩의 기준 시각 — 세션에서 한 번만 찍고 이후 갱신하지 않는다.
+     * 토큰 발급 시각을 기준으로 삼으면, 제출 실패 후 토큰을 재발급받은 재시도가
+     * 3초 트랩에 걸려 "접수 완료"만 보여주고 실제로는 버려진다. */
+    if (empty($_SESSION['form_first_seen'])) {
+        $_SESSION['form_first_seen'] = time();
+    }
     respond(200, ['token' => $_SESSION['csrf_token']]);
 }
 
@@ -128,10 +134,11 @@ if (field($data, 'company_url') !== '') {
     respond_accepted();
 }
 
-/* ── 제출 속도 트랩 — 토큰 발급 3초 이내 제출은 봇으로 간주, 조용히 성공 처리 ── */
-$issuedAt = (int) ($_SESSION['csrf_issued_at'] ?? 0);
-if ($issuedAt > 0 && (time() - $issuedAt) < 3) {
-    log_spam_block('speed_trap', ['elapsed_sec' => time() - $issuedAt]);
+/* ── 제출 속도 트랩 — 폼을 처음 받아간 뒤 3초 이내 제출은 봇으로 간주, 조용히 성공 처리.
+ * 기준은 세션에서 폼을 처음 본 시각이라 재시도로는 다시 걸리지 않는다 (위 토큰 발급부 참고). ── */
+$formFirstSeen = (int) ($_SESSION['form_first_seen'] ?? 0);
+if ($formFirstSeen > 0 && (time() - $formFirstSeen) < 3) {
+    log_spam_block('speed_trap', ['elapsed_sec' => time() - $formFirstSeen]);
     respond_accepted();
 }
 
@@ -169,7 +176,10 @@ $sessToken = (string) ($_SESSION['csrf_token'] ?? '');
 $tokenAge = time() - (int) ($_SESSION['csrf_issued_at'] ?? 0);
 unset($_SESSION['csrf_token'], $_SESSION['csrf_issued_at']);
 if ($sessToken === '' || $sentToken === '' || !hash_equals($sessToken, $sentToken) || $tokenAge > 1800) {
-    respond(419, ['ok' => false, 'error' => '보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.']);
+    /* 419(Laravel 관례)는 표준 코드가 아니라 이 호스팅 스택이 500 으로 바꿔 내보낸다 —
+     * 본문은 그대로 도착하지만 방문자 devtools 에는 서버 오류로 보인다. 400 을 쓴다.
+     * 403(봇 차단)과 구분해 두면 로그에서 "토큰 만료라 재시도하면 되는 요청"을 가려낼 수 있다. */
+    respond(400, ['ok' => false, 'error' => '보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.']);
 }
 
 /* ── Google reCAPTCHA v3 검증 — 위젯/체크박스 없이 제출 순간에 토큰을 받아 점수로 판별 ── */
@@ -256,8 +266,20 @@ if ($phone !== '' && !preg_match('/^[0-9()+\-\s]{6,20}$/', $phone)) {
 if ($message === '' || mb_strlen($message) < 5 || mb_strlen($message) > 5000) {
     $errors['message'] = '문의 내용을 5자 이상 5000자 이하로 입력해 주세요.';
 }
-$allowedProducts = ['AICura', 'AICopia', 'AICreo', '기타 / 미정'];
+/* 폼의 select 옵션과 1:1 로 맞춰야 한다. 목록에 없는 값은 아래에서 '기타 / 미정' 으로
+ * 덮이므로, 빠뜨리면 그 제품 문의가 조용히 뭉개져 어떤 리드였는지 알 수 없게 된다.
+ * 옵션을 추가/변경할 때 index.html · consulting.html 의 <select name="product"> 와 함께 고칠 것
+ * (옵션에 value 속성이 없어 표시 텍스트가 곧 전송 값이다). */
+$allowedProducts = [
+    // index.html — 제품군
+    'AICura', 'AICopia', 'AICreo', 'AILicet', 'AICassa',
+    'AITessera', 'AIPicto', 'AIFid', 'AILign', '기타 / 미정',
+    // consulting.html — 컨설팅 유형
+    '진단형', '구축형', '정착형', '상담 후 결정',
+];
 if ($product !== '' && !in_array($product, $allowedProducts, true)) {
+    /* 목록 누락인지 조작인지 구분해야 하므로 덮기 전에 원본을 남긴다. */
+    log_spam_block('unknown_product', ['product' => mb_substr($product, 0, 100)]);
     $product = '기타 / 미정';
 }
 if ($errors) {
