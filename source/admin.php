@@ -162,6 +162,12 @@ if ($isPost && $route === 'reply') {
 if ($isPost && $route === 'status') {
     handle_status();
 }
+if ($isPost && $route === 'delete') {
+    handle_delete();
+}
+if ($isPost && $route === 'purge-spam') {
+    handle_purge_spam();
+}
 if ($route === 'view') {
     render_view((int) query('id'));
 }
@@ -219,6 +225,78 @@ function handle_status(): never
     }
     inquiry_set_status($id, $status);
     redirect('admin.php?r=view&id=' . $id);
+}
+
+/**
+ * 문의 1건 삭제. 되돌릴 수 없으므로 confirm 값이 없으면 먼저 확인 화면을 보여준다.
+ *
+ * 관리자 화면에는 JS 가 없어(CSP `default-src 'none'`) 브라우저 confirm() 을 쓸 수 없다.
+ * 대신 서버가 무엇이 지워지는지 보여주고 한 번 더 POST 를 받는다.
+ */
+function handle_delete(): never
+{
+    csrf_check();
+
+    $id = (int) post('id');
+    $inquiry = $id > 0 ? inquiry_find($id) : null;
+    if ($inquiry === null) {
+        http_response_code(404);
+        exit('문의를 찾을 수 없습니다.');
+    }
+
+    if (post('confirm') !== 'yes') {
+        render_delete_confirm($inquiry);
+    }
+
+    /* 오삭제는 복구할 방법이 없으므로 지우기 전에 내용을 감사 로그로 남긴다. */
+    audit_log('inquiry_deleted', [
+        'id'      => $id,
+        'name'    => (string) $inquiry['name'],
+        'email'   => (string) $inquiry['email'],
+        'status'  => (string) $inquiry['status'],
+        'created' => (string) $inquiry['created_at'],
+        'replies' => reply_count($id),
+    ]);
+    inquiry_delete($id);
+
+    redirect('admin.php?deleted=1');
+}
+
+/** 스팸 전체 삭제. 단건 삭제와 같은 2단계 확인을 거친다. */
+function handle_purge_spam(): never
+{
+    csrf_check();
+
+    $count = inquiry_list(InquiryStatus::Spam, '', 1, 1)['total'];
+    if ($count === 0) {
+        redirect('admin.php?status=spam');
+    }
+
+    if (post('confirm') !== 'yes') {
+        render_purge_confirm($count);
+    }
+
+    audit_log('spam_purged', ['count' => $count]);
+    $deleted = inquiry_delete_all_spam();
+
+    redirect('admin.php?status=spam&purged=' . $deleted);
+}
+
+/**
+ * 관리자의 파괴적 조작을 기록한다. 삭제는 DB 에서 되돌릴 수 없으므로
+ * 최소한 무엇을 언제 지웠는지는 파일에 남겨 추적할 수 있게 한다.
+ *
+ * @param array<string, mixed> $context
+ */
+function audit_log(string $action, array $context): void
+{
+    app_log('admin-audit', sprintf(
+        'user=%s ip=%s action=%s %s',
+        (string) ($_SESSION['admin_user'] ?? '-'),
+        client_ip() ?: '-',
+        $action,
+        json_encode($context, JSON_UNESCAPED_UNICODE)
+    ));
 }
 
 function handle_reply(): never
@@ -398,10 +476,15 @@ function render_list(): never
         return 'admin.php' . ($q ? '?' . http_build_query($q) : '');
     };
 
+    $deleted = query('deleted') === '1';
+    $purged  = query('purged') !== '' ? (int) query('purged') : null;
+
     layout_head('문의 목록');
     layout_header();
     ?>
 <main>
+  <?php if ($deleted): ?><div class="alert alert-ok">문의를 삭제했습니다.</div><?php endif; ?>
+  <?php if ($purged !== null): ?><div class="alert alert-ok">스팸 <?= $purged ?>건을 삭제했습니다.</div><?php endif; ?>
   <div class="card">
     <h2>문의 목록 <span class="muted">(<?= (int) $result['total'] ?>건)</span></h2>
 
@@ -421,6 +504,15 @@ function render_list(): never
       <input type="search" name="q" value="<?= h($search) ?>" placeholder="이름·이메일·내용 검색" class="w-md">
       <button type="submit">검색</button>
     </form>
+
+    <?php if ($status === InquiryStatus::Spam && $result['total'] > 0): ?>
+      <form method="post" action="admin.php" class="filters">
+        <input type="hidden" name="r" value="purge-spam">
+        <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+        <button class="danger" type="submit">스팸 <?= (int) $result['total'] ?>건 전체 삭제</button>
+        <span class="muted">검색어와 무관하게 스팸 전체가 대상입니다. 삭제 전에 확인 화면을 거칩니다.</span>
+      </form>
+    <?php endif; ?>
 
     <?php if (!$result['rows']): ?>
       <p class="muted">해당하는 문의가 없습니다.</p>
@@ -455,6 +547,80 @@ function render_list(): never
         </div>
       <?php endif; ?>
     <?php endif; ?>
+  </div>
+</main>
+</body></html>
+    <?php
+    exit;
+}
+
+/**
+ * 삭제 확인 화면 — 무엇이 사라지는지 보여주고 한 번 더 POST 를 받는다.
+ *
+ * @param array<string, mixed> $inquiry
+ */
+function render_delete_confirm(array $inquiry): never
+{
+    $id = (int) $inquiry['id'];
+    $replies = reply_count($id);
+
+    layout_head('문의 #' . $id . ' 삭제');
+    layout_header();
+    ?>
+<main>
+  <div class="card">
+    <h2>문의 #<?= $id ?> 을(를) 삭제할까요?</h2>
+    <div class="alert alert-err">
+      <strong>되돌릴 수 없습니다.</strong> 이 문의와 딸린 발송 이력<?= $replies > 0 ? ' ' . $replies . '건' : '' ?>이 영구히 지워집니다.
+    </div>
+    <table>
+      <tr><th class="nowrap">이름 / 회사</th><td><?= h((string) $inquiry['name']) ?></td></tr>
+      <tr><th class="nowrap">이메일</th><td><?= h((string) $inquiry['email']) ?></td></tr>
+      <tr><th class="nowrap">접수 시각</th><td><?= h(fmt_time((string) $inquiry['created_at'])) ?></td></tr>
+      <tr><th class="nowrap">상태</th><td><?= status_badge((string) $inquiry['status']) ?></td></tr>
+    </table>
+    <h3>문의 내용</h3>
+    <div class="msg"><?= h((string) $inquiry['message']) ?></div>
+
+    <div class="row">
+      <form method="post" action="admin.php">
+        <input type="hidden" name="r" value="delete">
+        <input type="hidden" name="id" value="<?= $id ?>">
+        <input type="hidden" name="confirm" value="yes">
+        <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+        <button class="danger" type="submit">영구 삭제</button>
+      </form>
+      <a href="admin.php?r=view&amp;id=<?= $id ?>">취소하고 돌아가기</a>
+    </div>
+  </div>
+</main>
+</body></html>
+    <?php
+    exit;
+}
+
+/** 스팸 전체 삭제 확인 화면. */
+function render_purge_confirm(int $count): never
+{
+    layout_head('스팸 전체 삭제');
+    layout_header();
+    ?>
+<main>
+  <div class="card">
+    <h2>스팸 <?= $count ?>건을 모두 삭제할까요?</h2>
+    <div class="alert alert-err">
+      <strong>되돌릴 수 없습니다.</strong> 상태가 <em>스팸</em>인 문의 <?= $count ?>건과 딸린 발송 이력이 영구히 지워집니다.
+      오탐이 섞여 있을 수 있으니 목록을 먼저 확인하세요.
+    </div>
+    <div class="row">
+      <form method="post" action="admin.php">
+        <input type="hidden" name="r" value="purge-spam">
+        <input type="hidden" name="confirm" value="yes">
+        <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+        <button class="danger" type="submit">스팸 <?= $count ?>건 영구 삭제</button>
+      </form>
+      <a href="admin.php?status=spam">취소하고 목록으로</a>
+    </div>
   </div>
 </main>
 </body></html>
@@ -529,6 +695,15 @@ function render_view(int $id, string $error = ''): never
         <?php endforeach; ?>
       </select>
       <button class="ghost" type="submit">변경</button>
+    </form>
+
+    <h3>삭제</h3>
+    <form method="post" action="admin.php">
+      <input type="hidden" name="r" value="delete">
+      <input type="hidden" name="id" value="<?= (int) $inquiry['id'] ?>">
+      <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+      <button class="danger" type="submit">이 문의 삭제</button>
+      <span class="muted">삭제 전에 확인 화면을 한 번 더 거칩니다.</span>
     </form>
   </div>
 

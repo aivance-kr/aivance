@@ -168,6 +168,35 @@ function inquiry_find(int $id): ?array
     return $row === false ? null : $row;
 }
 
+/**
+ * 문의 1건을 영구 삭제한다. 딸린 답장 이력은 FK 의 ON DELETE CASCADE 로 함께 지워진다
+ * (`PRAGMA foreign_keys = ON` 이 켜져 있어야 동작 — db() 에서 설정한다).
+ *
+ * 되돌릴 수 없으므로 호출부가 사람에게 확인을 받은 뒤에만 부른다.
+ */
+function inquiry_delete(int $id): bool
+{
+    $stmt = db()->prepare('DELETE FROM inquiries WHERE id = :id');
+    $stmt->execute([':id' => $id]);
+    return $stmt->rowCount() > 0;
+}
+
+/** 스팸으로 분류된 문의를 모두 삭제하고 삭제된 건수를 돌려준다. */
+function inquiry_delete_all_spam(): int
+{
+    $stmt = db()->prepare('DELETE FROM inquiries WHERE status = :status');
+    $stmt->execute([':status' => InquiryStatus::Spam->value]);
+    return $stmt->rowCount();
+}
+
+/** 답장 이력 건수 (삭제 확인 화면에서 함께 사라질 데이터를 알려주기 위해 쓴다). */
+function reply_count(int $inquiryId): int
+{
+    $stmt = db()->prepare('SELECT COUNT(*) FROM replies WHERE inquiry_id = :iid');
+    $stmt->execute([':iid' => $inquiryId]);
+    return (int) $stmt->fetchColumn();
+}
+
 function inquiry_set_status(int $id, InquiryStatus $status): void
 {
     $stmt = db()->prepare('UPDATE inquiries SET status = :status WHERE id = :id');
