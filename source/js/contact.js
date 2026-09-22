@@ -13,12 +13,15 @@
   var fields = ['name', 'email', 'phone', 'message'];
   var submitting = false;
 
-  /* 페이지 로드 시 CSRF 토큰 확보 (세션 쿠키 확립) */
+  /* CSRF 토큰 확보 (세션 쿠키 확립).
+   * 토큰은 1회용이라 서버가 검증 단계를 지나면 성공/실패와 무관하게 폐기한다.
+   * 따라서 레이트리밋(429)처럼 검증 이후에 거절된 응답을 받은 뒤에도 토큰은 이미 죽어 있다 —
+   * 제출이 끝날 때마다 다시 받아두지 않으면 재시도가 전부 400 으로 떨어진다. */
   function loadToken() {
     fetch('contact.php?action=token', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) { if (d && d.token) tokenInput.value = d.token; })
-      .catch(function () { /* 제출 시 서버가 419로 안내 */ });
+      .catch(function () { /* 제출 시 서버가 400 으로 안내 */ });
   }
   loadToken();
 
@@ -61,7 +64,6 @@
         if (res.status === 200 && d.ok) {
           showAlert('success', d.message || '문의가 정상 접수되었습니다.');
           form.reset();
-          loadToken(); // 새 토큰 확보
         } else {
           if (d.fields) {
             Object.keys(d.fields).forEach(function (f) {
@@ -76,6 +78,7 @@
         showAlert('error', '네트워크 오류로 전송하지 못했습니다. 잠시 후 다시 시도해 주세요.');
       })
       .finally(function () {
+        loadToken(); // 성공이든 실패든 토큰은 소모됐다 — 재시도할 수 있게 다시 받아둔다
         submitting = false;
         submitBtn.disabled = false;
         submitBtn.textContent = submitBtn.dataset.label;
