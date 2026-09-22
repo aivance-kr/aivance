@@ -220,6 +220,8 @@ VirtualHost 의 `DocumentRoot` 를 `/var/www/aivance/source` 로 설정하고, P
 **관리자 페이지 보안**(`admin.php`): 단일 계정 + `password_verify`, 세션 고정 방지(로그인 시 ID 재발급),
 무활동 2시간·절대 12시간 만료, 전 POST CSRF 검증, 로그인 무차별 대입 레이트리밋(IP 당 시간당 20회),
 답장 발송 상한(전체 시간당 100통), CSP `default-src 'none'`(JS 없음) + `X-Frame-Options: DENY` + `noindex`.
+문의 삭제(단건·스팸 전체)는 되돌릴 수 없어 2단계 확인(POST 두 번)을 거치고, 삭제 직전 내용을
+`writable/logs/admin-audit-*.log` 에 남긴다 — DB 에서 사라진 뒤에도 무엇을 언제 지웠는지 추적할 수 있게.
 
 ---
 
