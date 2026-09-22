@@ -1,0 +1,8 @@
+# 내부 PHP 모듈 — 웹에서 직접 접근 차단 (include 로만 사용)
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

@@ -1,6 +1,10 @@
 User-agent: *
 Allow: /
 Disallow: /contact.php
+Disallow: /admin.php
+Disallow: /lib/
+Disallow: /tools/
+Disallow: /writable/
 Disallow: /vendor/
 
 # 생성형 AI 엔진 크롤러 명시적 허용 (GEO)

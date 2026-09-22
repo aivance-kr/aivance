@@ -1,6 +1,6 @@
 {
     "name": "aivance/homepage-contact",
-    "description": "AIvance 홈페이지 도입 문의 폼 — Brevo API 메일 발송 엔드포인트",
+    "description": "AIvance 홈페이지 도입 문의 폼 — SQLite 저장 + Slack 알림, 관리자 페이지에서 Brevo API 로 답장 발송",
     "type": "project",
     "require": {
         "php": ">=8.1",
