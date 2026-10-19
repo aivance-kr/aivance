@@ -1,0 +1,180 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   AIvance 메인 페이지 개편 — styles.css 위에 얹는 보강 스타일
+   브랜드 그라디언트 · 신뢰지표 · 창업자 · 컨설팅 · 제품 · 개발기록 · 바우처 · 다크모드
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --brand-1: #8B6EFF;
+  --brand-2: #5B3DF0;
+  --brand-3: #3B22B0;
+  --brand-gradient: linear-gradient(135deg, #8B6EFF, #5B3DF0, #3B22B0);
+  --font-sans: 'Pretendard Variable', Pretendard, 'Noto Sans KR', sans-serif;
+  --h-band: #F8FAFC;
+  --h-card: #fff;
+  --h-hero: linear-gradient(165deg, #ffffff 0%, #f4f1ff 55%, #e9e4ff 100%);
+}
+
+img, svg { max-width: 100%; }
+body { overflow-x: hidden; }
+
+/* 헤더 · 메뉴 */
+.nav { gap: 20px; }
+.nav-burger {
+  display: none; margin-left: 8px; width: 40px; height: 40px;
+  border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-strong); font-size: 22px; cursor: pointer;
+}
+.btn-primary { background: var(--brand-gradient); border-color: transparent; }
+.btn-primary:hover { background: var(--brand-3); border-color: transparent; }
+.btn-outline { color: var(--brand-2); }
+.btn-outline:hover { background: var(--brand-2); border-color: var(--brand-2); }
+
+/* Hero */
+.h-hero { background: var(--h-hero); }
+.h-hero .hero-inner { padding: 88px 24px 80px; }
+.h-hero h1 { font-size: clamp(28px, 5vw, 52px); line-height: 1.22; word-break: keep-all; }
+.h-grad-text {
+  background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.h-hero .badge-soft { color: var(--brand-2); background: rgba(139,110,255,.14); }
+.hero-lead { max-width: 620px; word-break: keep-all; }
+
+/* 신뢰 지표 */
+.h-trust { border-bottom: 1px solid var(--border-subtle); }
+.h-trust-grid {
+  list-style: none; margin: 0; padding: 28px 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; text-align: center;
+}
+.h-trust-grid li { display: flex; flex-direction: column; gap: 4px; }
+.h-trust .stat-num { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* 창업자 */
+.h-founder-card {
+  display: grid; grid-template-columns: 180px 1fr; gap: 40px; align-items: center;
+  background: var(--h-card); border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg); padding: 40px; box-shadow: var(--shadow-card);
+}
+.h-founder-photo {
+  width: 160px; height: 160px; border-radius: 50%; background: var(--brand-gradient);
+  color: #fff; font-family: var(--font-display); font-size: 64px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.h-founder .section-title { margin-top: 4px; }
+.h-role { font-size: 14px; font-weight: 600; color: var(--brand-2); background: rgba(139,110,255,.14); padding: 3px 10px; border-radius: 999px; vertical-align: middle; margin-left: 6px; }
+.h-checklist { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; }
+.h-checklist li { display: flex; gap: 10px; font-size: 15px; line-height: 1.6; color: var(--text-body); word-break: keep-all; }
+.h-checklist i { color: var(--brand-2); margin-top: 3px; }
+.h-quote { margin: 0; font-size: 17px; font-weight: 700; color: var(--text-strong); }
+
+/* 밴드 섹션 (컨설팅 · 개발기록) */
+.h-band { background: var(--h-band); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); }
+.h-step { gap: 8px; }
+.h-step-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.h-step-head i { font-size: 26px; color: var(--brand-2); }
+.h-step-no { width: 32px; height: 32px; border-radius: 50%; background: var(--brand-gradient); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.h-step h3, .h-post h3 { margin: 0; font-size: 19px; color: var(--text-strong); word-break: keep-all; }
+.h-step p, .h-post p { margin: 0; font-size: 14px; line-height: 1.7; color: var(--text-muted); word-break: keep-all; }
+.h-center-action { text-align: center; margin-top: 36px; }
+
+/* 제품 */
+.h-products { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.h-product h3.prod-name { margin: 0; }
+.h-soon { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--text-muted); background: var(--slate-100); padding: 3px 10px; border-radius: 999px; }
+.h-product.is-soon { opacity: .82; }
+.h-product.is-soon .prod-home { color: var(--text-subtle); cursor: default; }
+.h-target { margin: 0 0 14px; font-size: 13px; color: var(--text-muted); display: flex; gap: 6px; align-items: baseline; }
+.h-target i { color: var(--brand-2); }
+
+/* 개발기록 */
+.h-post { gap: 8px; }
+.h-post time { font-size: 12px; font-weight: 600; color: var(--brand-2); }
+.h-post a:hover { color: var(--brand-2); }
+
+/* 바우처 */
+.h-voucher-wrap { padding-top: 0; }
+.h-voucher {
+  display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap;
+  background: var(--brand-gradient); border-radius: 24px; padding: 40px 44px; color: #fff;
+}
+.h-voucher .section-eyebrow, .h-voucher .section-title, .h-voucher .section-sub { color: #fff; }
+.h-voucher .section-eyebrow { opacity: .8; }
+.h-voucher .section-title { font-size: 26px; }
+.h-voucher .section-sub { opacity: .92; word-break: keep-all; }
+.h-voucher .btn-primary { background: #fff; color: var(--brand-3); border-color: #fff; }
+.h-voucher .btn-primary:hover { background: #f1edff; }
+
+/* 문의 폼 보강 */
+.h-consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-body); cursor: pointer; }
+.h-consent input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--brand-2); flex: none; }
+.h-consent a { color: var(--brand-2); text-decoration: underline; }
+.h-consent .req { color: var(--danger-500); margin-left: 2px; }
+.h-form-note { font-size: 12px; color: var(--text-muted); margin: 12px 0 0; text-align: center; line-height: 1.6; }
+
+/* 푸터 */
+.h-company { display: grid; gap: 6px; margin: 0; font-size: 13px; color: var(--text-muted); }
+.h-company div { display: flex; gap: 12px; }
+.h-company dt { min-width: 104px; }
+.h-company dd { margin: 0; color: var(--text-body); font-weight: 600; }
+.h-company a:hover, .h-privacy-link:hover { color: var(--brand-2); }
+.h-privacy-link { font-size: 13px; font-weight: 600; color: var(--text-body); }
+
+/* 접근성 */
+:focus-visible { outline: 2px solid var(--brand-2); outline-offset: 2px; }
+.nav-links a { padding: 6px 2px; }
+
+/* 반응형 */
+@media (max-width: 860px) {
+  .nav-burger { display: inline-flex; align-items: center; justify-content: center; }
+  .nav-cta { margin-left: auto; }
+  .nav-links {
+    display: none; position: absolute; top: 64px; left: 0; right: 0;
+    flex-direction: column; gap: 0; background: var(--h-card);
+    border-bottom: 1px solid var(--border-default); padding: 8px 24px 16px;
+  }
+  .nav-links.open { display: flex; }
+  .nav-links a { padding: 12px 0; font-size: 16px; border-bottom: 1px solid var(--border-subtle); }
+  .h-founder-card { grid-template-columns: 1fr; gap: 24px; padding: 28px 22px; justify-items: start; }
+  .h-founder-photo { width: 112px; height: 112px; font-size: 44px; }
+  .h-products { grid-template-columns: repeat(2, 1fr); }
+  .h-company div { flex-direction: column; gap: 0; }
+  .h-voucher { padding: 32px 24px; }
+}
+@media (max-width: 560px) {
+  .h-trust-grid { grid-template-columns: repeat(2, 1fr); }
+  .h-products { grid-template-columns: 1fr; }
+  .section { padding-top: 56px; padding-bottom: 56px; }
+  .nav-cta .btn { padding: .35rem .65rem; }
+  .cta-actions, .hero-actions { flex-direction: column; align-items: stretch; }
+}
+
+/* 다크모드 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --h-band: #12141f; --h-card: #181b29;
+    --h-hero: linear-gradient(165deg, #0e1020 0%, #17133a 60%, #20184f 100%);
+    --text-strong: #F1F5F9; --text-body: #CBD5E1; --text-muted: #9AA7BD; --text-subtle: #6B7890;
+    --border-default: #2A2F45; --border-subtle: #20243a;
+    --slate-100: #232842; --surface-page: #0e1020;
+    --brand: #8B6EFF; --brand-hover: #A38DFF; --accent: #B7A6FF;
+    --cura-50:#0f2a28; --copia-50:#231a3d; --creo-50:#3a1a29; --licet-50:#33270d; --cassa-50:#102a1a;
+    --tessera-50:#0e2736; --picto-50:#35210f; --fid-50:#1b1d42; --lign-50:#33270d;
+    --cura-600:#3fd4c6; --copia-600:#b394ff; --creo-600:#ff86ae; --licet-600:#fbbf4a; --cassa-600:#4ade80;
+    --tessera-600:#5cc3f5; --picto-600:#ffa05c; --fid-600:#9aa0ff; --lign-600:#e0b04a;
+    --success-100:#0f2a1a; --success-700:#86efac; --danger-100:#3a1519; --danger-700:#fca5a5;
+    --shadow-card: 0 1px 2px rgba(0,0,0,.4);
+  }
+  body { background: #0e1020; }
+  .site-header { background: rgba(14,16,32,.85); }
+  .card, .faq-item, .contact-card, .why-card { background: var(--h-card); }
+  .contact { background: #0e1020; }
+  .site-footer { background: #0e1020; }
+  .form-control { background: #0e1020; color: var(--text-strong); }
+  .btn-outline { color: #b9a8ff; }
+  .h-quote { color: var(--text-strong); }
+  .h-voucher .btn-primary { color: var(--brand-3); }
+  .cta-box { background: #1b1740; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .h-product { transition: none; }
+}

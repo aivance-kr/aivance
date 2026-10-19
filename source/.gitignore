@@ -8,3 +8,4 @@
 /writable/*
 !/writable/.htaccess
 *.log
+.phpunit.result.cache
