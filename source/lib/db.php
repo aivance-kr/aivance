@@ -92,24 +92,34 @@ function db_migrate(PDO $pdo): void
         )
     SQL);
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_replies_inquiry_id ON replies(inquiry_id)');
+
+    /* 기존 DB 에 없는 컬럼은 여기서 추가한다 (CREATE TABLE IF NOT EXISTS 는 기존 테이블을 바꾸지 않는다). */
+    $existing = array_column($pdo->query('PRAGMA table_info(inquiries)')->fetchAll(), 'name');
+    foreach (['company' => "TEXT NOT NULL DEFAULT ''", 'inquiry_type' => "TEXT NOT NULL DEFAULT ''"] as $column => $definition) {
+        if (!in_array($column, $existing, true)) {
+            $pdo->exec('ALTER TABLE inquiries ADD COLUMN ' . $column . ' ' . $definition);
+        }
+    }
 }
 
 /**
  * 문의 1건 저장. 저장된 행의 id 를 돌려준다.
  *
- * @param array<string, string> $f name/email/phone/product/message
+ * @param array<string, string> $f name/company/email/phone/inquiry_type/product/message
  */
 function inquiry_insert(array $f, InquiryStatus $status, string $spamReason = ''): int
 {
     $pdo = db();
     $stmt = $pdo->prepare(
-        'INSERT INTO inquiries (name, email, phone, product, message, ip, user_agent, referer, status, spam_reason, created_at)
-         VALUES (:name, :email, :phone, :product, :message, :ip, :ua, :referer, :status, :spam_reason, :created_at)'
+        'INSERT INTO inquiries (name, company, email, phone, inquiry_type, product, message, ip, user_agent, referer, status, spam_reason, created_at)
+         VALUES (:name, :company, :email, :phone, :inquiry_type, :product, :message, :ip, :ua, :referer, :status, :spam_reason, :created_at)'
     );
     $stmt->execute([
         ':name'        => $f['name'] ?? '',
+        ':company'     => $f['company'] ?? '',
         ':email'       => $f['email'] ?? '',
         ':phone'       => $f['phone'] ?? '',
+        ':inquiry_type' => $f['inquiry_type'] ?? '',
         ':product'     => $f['product'] ?? '',
         ':message'     => $f['message'] ?? '',
         ':ip'          => client_ip(),
@@ -149,7 +159,7 @@ function inquiry_list(?InquiryStatus $status, string $search, int $page, int $pe
     /* LIMIT/OFFSET 은 바인딩 대신 정수 캐스팅 — SQLite 는 플레이스홀더를 허용하지만
      * PDO 가 문자열로 바인딩하면 구문 오류가 나므로 여기서 정수임을 보장한다. */
     $offset = max(0, ($page - 1) * $perPage);
-    $sql = 'SELECT id, name, email, phone, product, substr(message, 1, 120) AS excerpt,
+    $sql = 'SELECT id, name, company, email, phone, inquiry_type, product, substr(message, 1, 120) AS excerpt,
                    status, spam_reason, created_at
             FROM inquiries' . $whereSql . '
             ORDER BY id DESC LIMIT ' . (int) $perPage . ' OFFSET ' . (int) $offset;

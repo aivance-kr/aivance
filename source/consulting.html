@@ -37,7 +37,7 @@
 <body>
   <header class="site-header">
     <div class="container nav">
-      <a href="index.html" class="brand" aria-label="AIvance 홈">
+      <a href="./" class="brand" aria-label="AIvance 홈">
         <svg width="26" height="26" viewBox="0 0 64 64" fill="none" aria-hidden="true">
           <path d="M14 46 L30 30 L44 40 L58 20" stroke="var(--brand)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
           <circle cx="14" cy="46" r="6" fill="var(--brand)"/><circle cx="30" cy="30" r="6" fill="var(--brand)"/>
@@ -46,11 +46,11 @@
         <span><span class="ai">AI</span>vance</span>
       </a>
       <nav class="nav-links" aria-label="주요 메뉴">
-        <a href="index.html#products">제품</a>
+        <a href="./#products">제품</a>
         <a href="consulting.html" aria-current="page">개발환경 컨설팅</a>
-        <a href="index.html#why">철학</a>
-        <a href="index.html#tech">기술</a>
-        <a href="index.html#faq">FAQ</a>
+        <a href="./#founder">창업자</a>
+        <a href="./#blog">개발기록</a>
+        <a href="./#faq">FAQ</a>
       </nav>
       <div class="nav-cta"><a href="#consulting-contact" class="btn btn-primary btn-sm">상담 신청 <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
     </div>
@@ -187,6 +187,7 @@
               <div><label class="form-label" for="f-product">관심 컨설팅</label><select class="form-control" id="f-product" name="product"><option value="">선택 안 함</option><option>진단형</option><option>구축형</option><option>정착형</option><option>상담 후 결정</option></select></div>
             </div>
             <div class="form-row"><label class="form-label" for="f-message">문의 내용<span class="req">*</span></label><textarea class="form-control" id="f-message" name="message" placeholder="현재 개발 인원, 사용 중인 도구, 개선하고 싶은 개발 흐름을 자유롭게 남겨주세요." required></textarea><span class="form-error" id="err-message"></span></div>
+            <input type="hidden" name="inquiry_type" value="consulting"><div class="form-row"><label class="h-consent" style="display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer"><input type="checkbox" name="consent" value="1" required style="margin-top:3px"><span>개인정보 수집·이용에 동의합니다. (수집 항목: 이름·이메일·연락처·문의 내용 / 목적: 문의 응대)<span class="req">*</span></span></label><span class="form-error" id="err-consent"></span></div>
             <button type="submit" id="contact-submit" class="btn btn-primary btn-lg" style="width:100%">상담 문의 보내기</button>
             <p class="consulting-form-note">보내주신 정보는 문의 응대 목적으로만 사용됩니다.</p>
           </form>
@@ -197,10 +198,10 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div class="footer-top"><div class="footer-brand-block"><a href="index.html" class="footer-brand"><svg width="22" height="22" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M14 46 L30 30 L44 40 L58 20" stroke="var(--brand)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="46" r="6" fill="var(--brand)"/><circle cx="30" cy="30" r="6" fill="var(--brand)"/><circle cx="44" cy="40" r="6" fill="var(--accent)"/><circle cx="58" cy="20" r="6" fill="var(--accent)"/></svg><span><span style="color:var(--brand)">AI</span>vance</span></a><div class="footer-domains"><a href="https://cura.aivance.kr" target="_blank" rel="noopener">cura.aivance.kr</a><a href="https://copia.aivance.kr" target="_blank" rel="noopener">copia.aivance.kr</a><a href="https://creo.aivance.kr" target="_blank" rel="noopener">creo.aivance.kr</a></div></div><div class="footer-contact"><div class="fc-item"><span class="fc-label"><i class="bi bi-person" aria-hidden="true"></i> 담당자</span><span class="fc-value">변종원</span></div><div class="fc-item"><span class="fc-label"><i class="bi bi-telephone" aria-hidden="true"></i> 연락처</span><a class="fc-value" href="tel:+821050400011">010-5040-0011</a></div><div class="fc-item"><span class="fc-label"><i class="bi bi-envelope" aria-hidden="true"></i> 이메일</span><a class="fc-value" href="mailto:advisor@aivance.kr">advisor@aivance.kr</a></div></div></div><div class="footer-copy">© 2026 AIvance. All rights reserved.</div>
+      <div class="footer-top"><div class="footer-brand-block"><a href="./" class="footer-brand"><svg width="22" height="22" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M14 46 L30 30 L44 40 L58 20" stroke="var(--brand)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="46" r="6" fill="var(--brand)"/><circle cx="30" cy="30" r="6" fill="var(--brand)"/><circle cx="44" cy="40" r="6" fill="var(--accent)"/><circle cx="58" cy="20" r="6" fill="var(--accent)"/></svg><span><span style="color:var(--brand)">AI</span>vance</span></a><div class="footer-domains"><a href="https://cura.aivance.kr" target="_blank" rel="noopener">cura.aivance.kr</a><a href="https://copia.aivance.kr" target="_blank" rel="noopener">copia.aivance.kr</a><a href="https://creo.aivance.kr" target="_blank" rel="noopener">creo.aivance.kr</a></div></div><div class="footer-contact"><div class="fc-item"><span class="fc-label"><i class="bi bi-person" aria-hidden="true"></i> 담당자</span><span class="fc-value">변종원</span></div><div class="fc-item"><span class="fc-label"><i class="bi bi-telephone" aria-hidden="true"></i> 연락처</span><a class="fc-value" href="tel:+821050400011">010-5040-0011</a></div><div class="fc-item"><span class="fc-label"><i class="bi bi-envelope" aria-hidden="true"></i> 이메일</span><a class="fc-value" href="mailto:advisor@aivance.kr">advisor@aivance.kr</a></div></div></div><div class="footer-copy">© 2026 AIvance. All rights reserved.</div>
     </div>
   </footer>
   <script src="https://www.google.com/recaptcha/api.js?render=6Ld0rsEtAAAAALYH0-QOjqHa5m5hRCVnBN7lyrHq"></script>
-  <script src="js/contact.js?v=4" defer></script>
+  <script src="js/contact.js?v=5" defer></script>
 </body>
 </html>

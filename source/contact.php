@@ -17,6 +17,7 @@ declare(strict_types=1);
 require __DIR__ . '/lib/bootstrap.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/slack.php';
+require __DIR__ . '/lib/home.php';
 
 /* 스택 트레이스 노출 금지 — 예외는 JSON 500 으로 변환하고 파일 로그에만 기록 */
 ini_set('display_errors', '0');
@@ -247,15 +248,28 @@ if (!$recaptchaResult['ok']) {
 }
 
 /* ── 입력 검증 ────────────────────────────────────────────────────────── */
-$name    = field($data, 'name');
-$email   = field($data, 'email');
-$phone   = field($data, 'phone');
-$product = field($data, 'product');
-$message = field($data, 'message');
+$name        = field($data, 'name');
+$company     = field($data, 'company');
+$email       = field($data, 'email');
+$phone       = field($data, 'phone');
+$inquiryType = field($data, 'inquiry_type');
+$product     = field($data, 'product');
+$message     = field($data, 'message');
+$consent     = filter_var($data['consent'] ?? false, FILTER_VALIDATE_BOOLEAN);
+$inquiryTypes = home_config('site')['inquiry_types'];
 
 $errors = [];
 if ($name === '' || mb_strlen($name) > 100) {
-    $errors['name'] = '이름/회사명을 입력해 주세요.';
+    $errors['name'] = '이름을 입력해 주세요.';
+}
+if (mb_strlen($company) > 100) {
+    $errors['company'] = '회사명은 100자 이하로 입력해 주세요.';
+}
+if (!array_key_exists($inquiryType, $inquiryTypes)) {
+    $errors['inquiry_type'] = '문의 유형을 선택해 주세요.';
+}
+if (!$consent) {
+    $errors['consent'] = '개인정보 수집·이용에 동의해 주세요.';
 }
 if ($email === '' || mb_strlen($email) > 254 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors['email'] = '올바른 이메일 주소를 입력해 주세요.';
@@ -263,17 +277,16 @@ if ($email === '' || mb_strlen($email) > 254 || !filter_var($email, FILTER_VALID
 if ($phone !== '' && !preg_match('/^[0-9()+\-\s]{6,20}$/', $phone)) {
     $errors['phone'] = '연락처 형식을 확인해 주세요.';
 }
-if ($message === '' || mb_strlen($message) < 5 || mb_strlen($message) > 5000) {
-    $errors['message'] = '문의 내용을 5자 이상 5000자 이하로 입력해 주세요.';
+if ($message === '' || mb_strlen($message) < 5 || mb_strlen($message) > 2000) {
+    $errors['message'] = '문의 내용을 5자 이상 2000자 이하로 입력해 주세요.';
 }
 /* 폼의 select 옵션과 1:1 로 맞춰야 한다. 목록에 없는 값은 아래에서 '기타 / 미정' 으로
  * 덮이므로, 빠뜨리면 그 제품 문의가 조용히 뭉개져 어떤 리드였는지 알 수 없게 된다.
- * 옵션을 추가/변경할 때 index.html · consulting.html 의 <select name="product"> 와 함께 고칠 것
+ * 옵션을 추가/변경할 때 lib/config/products.php · consulting.html 의 <select name="product"> 와 함께 고칠 것
  * (옵션에 value 속성이 없어 표시 텍스트가 곧 전송 값이다). */
 $allowedProducts = [
-    // index.html — 제품군
-    'AICura', 'AICopia', 'AICreo', 'AILicet', 'AICassa',
-    'AITessera', 'AIPicto', 'AIFid', 'AILign', '기타 / 미정',
+    // 메인 페이지 — lib/config/products.php 의 제품명
+    ...array_column(home_config('products'), 'name'), '기타 / 미정',
     // consulting.html — 컨설팅 유형
     '진단형', '구축형', '정착형', '상담 후 결정',
 ];
@@ -287,11 +300,13 @@ if ($errors) {
 }
 
 $fields = [
-    'name'    => $name,
-    'email'   => $email,
-    'phone'   => $phone,
-    'product' => $product,
-    'message' => $message,
+    'name'         => $name,
+    'company'      => $company,
+    'email'        => $email,
+    'phone'        => $phone,
+    'inquiry_type' => $inquiryType,
+    'product'      => $product,
+    'message'      => $message,
 ];
 
 /* ── 일회용/스팸용 이메일 도메인 차단 ─────────────────────────────────── */
@@ -347,9 +362,10 @@ if ($inquiryId === 0) {
 
 /* Slack 실패는 접수 실패가 아니다 — 원본은 이미 보관돼 있으므로 알림만 포기하고 로그를 남긴다. */
 slack_notify_inquiry($inquiryId, [
-    '이름 / 회사' => $name,
+    '이름 / 회사' => $company !== '' ? $name . ' / ' . $company : $name,
     '이메일'      => $email,
     '연락처'      => $phone,
+    '문의 유형'   => $inquiryTypes[$inquiryType],
     '관심 제품'   => $product,
     '접수 시각'   => date('Y-m-d H:i:s'),
     '요청 IP'     => $clientIp,
