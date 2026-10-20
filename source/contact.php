@@ -341,7 +341,7 @@ function looks_spammy(string $text): bool
 $spamReason = '';
 if (in_array($emailDomain, $disposableDomains, true)) {
     $spamReason = 'disposable_email:' . $emailDomain;
-} elseif (looks_spammy($name . ' ' . $message)) {
+} elseif (looks_spammy($name . ' ' . $company . ' ' . $message)) {
     $spamReason = 'content_filter';
 }
 

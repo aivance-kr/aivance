@@ -146,7 +146,7 @@ function inquiry_list(?InquiryStatus $status, string $search, int $page, int $pe
         $params[':status'] = $status->value;
     }
     if ($search !== '') {
-        $where[] = '(name LIKE :q OR email LIKE :q OR message LIKE :q)';
+        $where[] = '(name LIKE :q OR company LIKE :q OR email LIKE :q OR message LIKE :q)';
         $params[':q'] = '%' . $search . '%';
     }
     $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
