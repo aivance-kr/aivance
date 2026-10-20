@@ -31,7 +31,7 @@ function slack_notify_inquiry(int $inquiryId, array $fields, string $message): v
     foreach ($fields as $label => $value) {
         $fieldBlocks[] = [
             'type' => 'mrkdwn',
-            'text' => '*' . $label . "*\n" . ($value !== '' ? $value : '-'),
+            'text' => '*' . $label . "*\n" . ($value !== '' ? slack_escape($value) : '-'),
         ];
     }
     /* Slack section 의 fields 는 최대 10개까지만 렌더링된다. */
@@ -58,7 +58,7 @@ function slack_notify_inquiry(int $inquiryId, array $fields, string $message): v
     }
 
     slack_post($webhook, [
-        'text'   => '새 도입 문의 #' . $inquiryId . ' — ' . ($fields['이름 / 회사'] ?? ''),
+        'text'   => '새 도입 문의 #' . $inquiryId . ' — ' . slack_escape($fields['이름 / 회사'] ?? ''),
         'blocks' => $blocks,
     ]);
 }
@@ -66,8 +66,13 @@ function slack_notify_inquiry(int $inquiryId, array $fields, string $message): v
 /** Slack mrkdwn 안전 처리 + 인용 블록으로 감싸기 (길면 자른다). */
 function slack_quote(string $text): string
 {
-    $text = strtr(mb_substr($text, 0, 1500), ['&' => '&amp;', '<' => '&lt;', '>' => '&gt;']);
-    return '>' . str_replace("\n", "\n>", $text);
+    return '>' . str_replace("\n", "\n>", slack_escape(mb_substr($text, 0, 1500)));
+}
+
+/** 사용자 입력이 Slack mrkdwn 링크·멘션(<...>)으로 해석되지 않게 &, <, > 를 이스케이프한다. */
+function slack_escape(string $text): string
+{
+    return strtr($text, ['&' => '&amp;', '<' => '&lt;', '>' => '&gt;']);
 }
 
 /**

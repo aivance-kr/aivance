@@ -9,6 +9,8 @@
   --brand-3: #3B22B0;
   --brand-gradient: linear-gradient(135deg, #8B6EFF, #5B3DF0, #3B22B0);
   --font-sans: 'Pretendard Variable', Pretendard, 'Noto Sans KR', sans-serif;
+  --lego:#E11D48; --lego-600:#BE123C; --lego-50:#FFE4E6;
+  --cella:#65A30D; --cella-600:#4D7C0F; --cella-50:#ECFCCB;
   --h-band: #F8FAFC;
   --h-card: #fff;
   --h-hero: linear-gradient(165deg, #ffffff 0%, #f4f1ff 55%, #e9e4ff 100%);
@@ -159,6 +161,7 @@ body { overflow-x: hidden; }
     --cura-50:#0f2a28; --copia-50:#231a3d; --creo-50:#3a1a29; --licet-50:#33270d; --cassa-50:#102a1a;
     --tessera-50:#0e2736; --picto-50:#35210f; --fid-50:#1b1d42; --lign-50:#33270d;
     --cura-600:#3fd4c6; --copia-600:#b394ff; --creo-600:#ff86ae; --licet-600:#fbbf4a; --cassa-600:#4ade80;
+    --lego-50:#3a1520; --cella-50:#1f2a0f; --lego-600:#fb7185; --cella-600:#a3e635;
     --tessera-600:#5cc3f5; --picto-600:#ffa05c; --fid-600:#9aa0ff; --lign-600:#e0b04a;
     --success-100:#0f2a1a; --success-700:#86efac; --danger-100:#3a1519; --danger-700:#fca5a5;
     --shadow-card: 0 1px 2px rgba(0,0,0,.4);
