@@ -42,7 +42,7 @@ final class HomePageTest extends TestCase
 
     public function testVoucherQueryPreselectsInquiryType(): void
     {
-        self::assertMatchesRegularExpression('#<option value="voucher" selected>#', home_render(['inquiry' => 'voucher']));
+        self::assertMatchesRegularExpression('#<option value="product" selected>#', home_render(['inquiry' => 'product']));
         self::assertMatchesRegularExpression('#<option value="consulting" selected>#', home_render(['inquiry' => 'bogus']));
     }
 

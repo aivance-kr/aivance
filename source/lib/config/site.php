@@ -57,7 +57,7 @@ return [
     'inquiry_types' => [
         'consulting' => 'AI 개발환경 컨설팅',
         'product'    => '제품 도입',
-        'voucher'    => '바우처 도입',
+        // 'voucher'    => '바우처 도입', // 비노출 — 공급기업 등록 후 주석 해제
         'etc'        => '기타',
     ],
 
