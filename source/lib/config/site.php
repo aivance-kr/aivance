@@ -22,7 +22,7 @@ return [
     'trust' => [
         ['value' => '26년',  'label' => 'PHP 개발 경력'],
         ['value' => '저자',  'label' => 'CodeIgniter 서적 (한빛미디어, 2013)'],
-        ['value' => '운영진', 'label' => 'CI Korea 커뮤니티'],
+        ['value' => '17년', 'label' => 'CodeIgniter 한국 사용자 포럼 운영'],
         ['value' => '{saas}종', 'label' => 'AI로 제작한 SaaS'],
     ],
 
@@ -34,6 +34,7 @@ return [
         'bio'       => [
             '《만들면서 배우는 CodeIgniter》 저자',
             'PHPFest · XCON · 마이크로소프트 개발자 행사 강연',
+            'CodeIgniter 한국 사용자 포럼 17년 운영 (필명 ‘웅파’)',
             'CodeIgniter 유료 교육 다수 진행, 현재 AI 입문 교육 진행 중',
             '기획부터 서버 배포·운영까지 1인 수행',
         ],
