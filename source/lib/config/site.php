@@ -30,7 +30,6 @@ return [
         'name'      => '변종원',
         'nickname'  => '웅파',
         'role'      => 'Advisor',
-        'initial'   => '웅',
         'message'   => '직접 써보고 검증한 방식만 제안합니다.',
         'bio'       => [
             '《만들면서 배우는 CodeIgniter》 저자',
