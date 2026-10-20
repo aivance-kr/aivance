@@ -19,4 +19,6 @@ return [
     ['name' => 'AIPicto',   'slug' => 'picto',   'icon' => 'bi-book-half',     'tagline' => '그림책 구독·열람 플랫폼',            'target' => '그림책 구독 서비스 운영자',     'url' => 'https://picto.aivance.kr',   'sample' => 'products/aipicto.html',   'category' => '그림책 구독·열람 플랫폼'],
     ['name' => 'AIFid',     'slug' => 'fid',     'icon' => 'bi-chat-square-dots', 'tagline' => '실시간 고객 상담 솔루션',         'target' => '웹사이트로 상담받는 사업자',    'url' => 'https://fid.aivance.kr',     'sample' => 'products/aifid.html',     'category' => '실시간 고객 상담 솔루션'],
     ['name' => 'AILign',    'slug' => 'lign',    'icon' => 'bi-tools',         'tagline' => '목공·CNC 견적 솔루션',               'target' => '목공·CNC 공방',                  'url' => 'https://lign.aivance.kr',    'sample' => 'products/ailign.html',    'category' => '목공·CNC 견적 솔루션'],
+    ['name' => 'AILego',    'slug' => 'lego',    'icon' => 'bi-camera-video',  'tagline' => 'AI 화상면접 SaaS',                   'target' => '수시채용 기업·병원·대량채용 기관', 'url' => null,                      'sample' => null,                      'category' => 'AI 화상면접 솔루션'],
+    ['name' => 'AICella',   'slug' => 'cella',   'icon' => 'bi-house-door',    'tagline' => '2D·3D 방 배치 플래너',               'target' => '가구 구매 전 배치를 확인하려는 사용자', 'url' => null,                 'sample' => null,                      'category' => '방 배치 플래너'],
 ];

@@ -22,7 +22,9 @@ declare(strict_types=1);
         <p class="prod-desc"><?= esc($p['tagline']) ?></p>
         <p class="h-target"><i class="bi bi-person-check" aria-hidden="true"></i> <?= esc($p['target']) ?></p>
         <div class="prod-links">
+<?php if ($p['sample'] !== null): ?>
           <a class="prod-view" style="color:var(--<?= esc($slug) ?>-600)" href="<?= esc($p['sample']) ?>">샘플 디자인 <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+<?php endif; ?>
 <?php if ($live): ?>
           <a class="prod-home" href="<?= esc($p['url']) ?>" target="_blank" rel="noopener" data-ga="product_card_click" data-ga-label="<?= esc($p['name']) ?>"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> <?= esc(preg_replace('#^https://#', '', (string) $p['url'])) ?></a>
 <?php else: ?>
