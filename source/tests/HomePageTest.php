@@ -53,10 +53,11 @@ final class HomePageTest extends TestCase
         self::assertStringContainsString('googletagmanager', home_render([], 'G-ABC1234567'));
     }
 
-    public function testSoonProductsHaveNoExternalLinkAndUserTextIsEscaped(): void
+    public function testProductWithoutUrlGetsSoonBadgeAndNoLinkAndTextIsEscaped(): void
     {
-        $html = home_render();
-        self::assertStringNotContainsString('tessera.aivance.kr', $html);
+        $html = home_partial('products', ['products' => [['url' => null, 'sample' => null, 'name' => 'AIZeta', 'slug' => 'zeta', 'icon' => 'bi-x', 'tagline' => 't', 'target' => 'g']]]);
+        self::assertStringContainsString('준비 중', $html);
+        self::assertStringNotContainsString('<a ', $html);
         self::assertSame('&lt;b&gt;', esc('<b>'));
     }
 
