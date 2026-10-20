@@ -49,9 +49,9 @@ function home_render(array $query = [], string $gaId = ''): string
     $faq      = home_config('faq');
     $blog     = home_config('blog');
 
-    /* 신뢰 지표의 {saas} 는 실제 제품 수로 채운다 (수치 이중 관리 방지) */
+    /* 신뢰 지표의 {saas} 는 site.php 의 saas_count 로 채운다 */
     $site['trust'] = array_map(
-        static fn (array $t): array => ['value' => str_replace('{saas}', (string) count($products), $t['value']), 'label' => $t['label']],
+        static fn (array $t): array => ['value' => str_replace('{saas}', (string) $site['saas_count'], $t['value']), 'label' => $t['label']],
         $site['trust']
     );
 
@@ -67,7 +67,7 @@ function home_render(array $query = [], string $gaId = ''): string
         'blog'         => $blog,
         'gaId'         => $gaId,
         'selectedType' => $selectedType,
-        'productCount' => count($products),
+        'productCount' => (int) $site['saas_count'],
     ]);
 }
 

@@ -35,9 +35,9 @@ final class HomePageTest extends TestCase
         self::assertCount(count($live), $graphs[1]['itemListElement']);
     }
 
-    public function testTrustSaasCountComesFromProducts(): void
+    public function testSaasCountComesFromSiteConfig(): void
     {
-        self::assertStringContainsString(count(home_config('products')) . '종', home_render());
+        self::assertStringContainsString(home_config('site')['saas_count'] . '종', home_render());
     }
 
     public function testVoucherQueryPreselectsInquiryType(): void

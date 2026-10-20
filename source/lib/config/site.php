@@ -15,7 +15,10 @@ return [
     'description' => '26년 경력 PHP 개발자 변종원(웅파)이 Claude Code로 만든 실무형 SaaS와, 팀의 AI 개발환경 구축 컨설팅을 제공합니다.',
     'og_image' => 'https://aivance.kr/assets/og/main.png', // TODO: 대표 확인 필요 — OG 이미지 제작 후 교체 (현재 placeholder)
 
-    /* 신뢰 지표 — saas 값은 products 설정의 제품 수로 자동 계산한다 */
+    /* AI로 제작한 SaaS 수 — 히어로 문구와 신뢰 지표의 {saas} 에 들어간다 (공개 제품 카드 수와 별개) */
+    'saas_count' => 11,
+
+    /* 신뢰 지표 */
     'trust' => [
         ['value' => '26년',  'label' => 'PHP 개발 경력'],
         ['value' => '저자',  'label' => 'CodeIgniter 서적 (한빛미디어, 2013)'],
