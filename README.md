@@ -2,7 +2,7 @@
 
 AIvance 모(母) 브랜드 원페이지 홈페이지입니다. 정적 페이지(HTML/CSS/JS)에 **도입 문의 폼**(PHP + SQLite + Slack 알림)과 **문의 관리자 페이지**가 결합된 구조로, 웹 서버 문서 루트(document root)를 **`source/`** 로 지정해 배포합니다.
 
-- 홈페이지: 히어로 · 3제품(AICura/AICopia/AICreo) · 철학 · 기술 · CTA · 문의 폼 · 푸터
+- 홈페이지: 히어로 · 신뢰지표 · 창업자 · 컨설팅 · 제품 · 개발기록 · 바우처 · FAQ · 문의 폼 · 푸터 (`GA_MEASUREMENT_ID` 로 GA4 선택 적용)
 - 제품 샘플 디자인: `source/products/aicura.html` · `aicopia.html` · `aicreo.html`
 - 회사소개서 PDF 다운로드: `source/downloads/AIvance_회사소개서.pdf`
 - 문의 폼 → **SQLite 저장 + Slack 알림** (`source/contact.php`)
@@ -33,7 +33,9 @@ AIvance 모(母) 브랜드 원페이지 홈페이지입니다. 정적 페이지(
 
 ```
 source/                     ← 웹 문서 루트 (docroot)
-├── index.html              메인 페이지
+├── index.php               메인 페이지 (설정 lib/config/*.php + 화면 lib/views/home/*.php)
+├── privacy.html            개인정보처리방침 (본문 TODO)
+├── legacy/                 개편 이전 정적 메인 백업 (noindex)
 ├── contact.php             문의 폼 엔드포인트 (SQLite 저장 + Slack 알림)
 ├── admin.php               문의 관리자 페이지 (로그인 · 목록 · 답장 발송)
 ├── lib/                    공용 모듈 (bootstrap · db · mailer · slack) — 웹 접근 차단
@@ -145,7 +147,7 @@ server {
     server_name aivance.kr www.aivance.kr;
 
     root /var/www/aivance/source;
-    index index.html;
+    index index.php index.html;
 
     # SSL 인증서 (Let's Encrypt 등)
     ssl_certificate     /etc/letsencrypt/live/aivance.kr/fullchain.pem;

@@ -10,7 +10,7 @@
   var alertBox = document.getElementById('form-alert');
   var submitBtn = document.getElementById('contact-submit');
   var tokenInput = form.querySelector('input[name="csrf_token"]');
-  var fields = ['name', 'email', 'phone', 'message'];
+  var fields = ['name', 'company', 'email', 'phone', 'inquiry_type', 'message', 'consent'];
   var submitting = false;
 
   /* CSRF 토큰 확보 (세션 쿠키 확립).
@@ -45,10 +45,13 @@
       csrf_token: tokenInput.value,
       company_url: form.querySelector('input[name="company_url"]').value, // 허니팟
       name: form.name.value,
+      company: form.company ? form.company.value : '',
       email: form.email.value,
       phone: form.phone.value,
+      inquiry_type: form.inquiry_type ? form.inquiry_type.value : '',
       product: form.product.value,
       message: form.message.value,
+      consent: form.consent ? form.consent.checked : false,
       'g-recaptcha-response': recaptchaToken
     };
 
@@ -64,6 +67,7 @@
         if (res.status === 200 && d.ok) {
           showAlert('success', d.message || '문의가 정상 접수되었습니다.');
           form.reset();
+          if (typeof window.gtag === 'function') window.gtag('event', 'contact_submit_success');
         } else {
           if (d.fields) {
             Object.keys(d.fields).forEach(function (f) {

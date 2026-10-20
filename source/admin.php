@@ -18,6 +18,7 @@ declare(strict_types=1);
 require __DIR__ . '/lib/bootstrap.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/mailer.php';
+require __DIR__ . '/lib/home.php';
 
 ini_set('display_errors', '0');
 set_exception_handler(static function (\Throwable $e): void {
@@ -526,7 +527,7 @@ function render_list(): never
           <tr>
             <td class="nowrap"><a href="admin.php?r=view&amp;id=<?= (int) $row['id'] ?>">#<?= (int) $row['id'] ?></a></td>
             <td class="nowrap muted"><?= h(fmt_time((string) $row['created_at'])) ?></td>
-            <td><?= h((string) $row['name']) ?></td>
+            <td><?= h((string) $row['name']) ?><?= (string) ($row['company'] ?? '') !== '' ? ' / ' . h((string) $row['company']) : '' ?></td>
             <td><?= h((string) $row['email']) ?></td>
             <td class="nowrap"><?= h((string) $row['product'] ?: '-') ?></td>
             <td class="muted"><?= h((string) $row['excerpt']) ?></td>
@@ -670,6 +671,8 @@ function render_view(int $id, string $error = ''): never
       <tr><th class="nowrap">이름 / 회사</th><td><?= h((string) $inquiry['name']) ?></td></tr>
       <tr><th class="nowrap">이메일</th><td><?= h((string) $inquiry['email']) ?></td></tr>
       <tr><th class="nowrap">연락처</th><td><?= h((string) $inquiry['phone'] ?: '-') ?></td></tr>
+      <tr><th class="nowrap">회사명</th><td><?= h((string) ($inquiry['company'] ?? '') ?: '-') ?></td></tr>
+      <tr><th class="nowrap">문의 유형</th><td><?= h(home_config('site')['inquiry_types'][$inquiry['inquiry_type'] ?? ''] ?? '-') ?></td></tr>
       <tr><th class="nowrap">관심 제품</th><td><?= h((string) $inquiry['product'] ?: '-') ?></td></tr>
       <tr><th class="nowrap">접수 시각</th><td><?= h(fmt_time((string) $inquiry['created_at'])) ?></td></tr>
       <tr><th class="nowrap">요청 IP</th><td><?= h((string) $inquiry['ip'] ?: '-') ?></td></tr>
