@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AICella 방 배치 플래너 샘플 디자인</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/samples.css">
+  <style>
+    :root { --cella:#65A30D; --cella-600:#4D7C0F; --cella-50:#ECFCCB; }
+    body { margin:0; background:#f6f8f2; color:var(--text-body); }
+    .app { display:grid; grid-template-columns:260px 1fr 280px; min-height:calc(100vh - 41px); }
+    .side, .info { background:#fff; padding:22px 18px; }
+    .side { border-right:1px solid var(--border-default); }
+    .info { border-left:1px solid var(--border-default); }
+    .logo { font-size:24px; font-weight:700; color:var(--text-strong); margin:0 0 20px; }
+    .logo b { color:var(--cella); }
+    h2 { font-size:14px; margin:20px 0 10px; color:var(--text-strong); }
+    .field { display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border-subtle); }
+    .field b { color:var(--text-strong); }
+    .item { display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--border-default); border-radius:8px; margin-bottom:8px; font-size:13px; }
+    .item i { color:var(--cella-600); font-size:18px; }
+    .item small { display:block; color:var(--text-muted); font-size:11px; }
+    .stage { padding:24px; display:grid; gap:14px; align-content:start; }
+    .toolbar { display:flex; gap:8px; flex-wrap:wrap; }
+    .toolbar span { font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px; border:1px solid var(--border-default); background:#fff; }
+    .toolbar .on { background:var(--cella); border-color:var(--cella); color:#fff; }
+    .room { position:relative; width:100%; max-width:640px; aspect-ratio:6/5; background:#fff; border:3px solid #3f4a3a; border-radius:4px; background-image:linear-gradient(#eef2e8 1px,transparent 1px),linear-gradient(90deg,#eef2e8 1px,transparent 1px); background-size:10% 10%; }
+    .f { position:absolute; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border-radius:4px; background:var(--cella-50); border:2px solid var(--cella); color:var(--cella-600); text-align:center; }
+    .f.bad { background:#fee2e2; border-color:#dc2626; color:#b91c1c; }
+    .clear { position:absolute; border:2px dashed #dc2626; border-radius:4px; }
+    .door { position:absolute; left:42%; bottom:-3px; width:16%; height:3px; background:#fff; }
+    .ok { color:#15803d; } .bad-t { color:#b91c1c; }
+    .check { display:flex; gap:8px; font-size:13px; margin-bottom:10px; align-items:flex-start; }
+    .tip { font-size:12px; color:var(--text-muted); margin-top:14px; line-height:1.6; }
+    @media (max-width:980px) { .app { grid-template-columns:1fr; } .side, .info { border:0; } }
+  </style>
+</head>
+<body>
+  <div class="sample-bar"><a class="sb-back" href="../"><i class="bi bi-arrow-left"></i> AIvance 홈</a><span class="sb-label"><span class="sb-tag" style="color:var(--cella)">AICella</span> 2D·3D 방 배치 플래너</span><a class="sb-home" href="https://cella.aivance.kr" target="_blank" rel="noopener">cella.aivance.kr <i class="bi bi-box-arrow-up-right"></i></a></div>
+  <div class="app">
+    <aside class="side">
+      <div class="logo"><b>AI</b>Cella</div>
+      <h2>방 치수</h2>
+      <div class="field"><span>가로</span><b>3,600 mm</b></div>
+      <div class="field"><span>세로</span><b>3,000 mm</b></div>
+      <div class="field"><span>문 폭</span><b>900 mm</b></div>
+      <h2>가구 추가</h2>
+      <div class="item"><i class="bi bi-layout-sidebar"></i><div>침대 (퀸)<small>1,600 × 2,000 mm</small></div></div>
+      <div class="item"><i class="bi bi-table"></i><div>책상<small>1,200 × 600 mm</small></div></div>
+      <div class="item"><i class="bi bi-archive"></i><div>옷장<small>1,000 × 600 mm</small></div></div>
+    </aside>
+    <main class="stage">
+      <div class="toolbar"><span class="on"><i class="bi bi-grid"></i> 2D 평면</span><span><i class="bi bi-box"></i> 3D 둘러보기</span><span><i class="bi bi-download"></i> JSON으로 저장</span></div>
+      <div class="room" role="img" aria-label="침대, 책상, 옷장이 배치된 방 평면도 예시">
+        <div class="f" style="left:3%;top:4%;width:44%;height:66%">침대 (퀸)</div>
+        <div class="f" style="left:56%;top:4%;width:34%;height:16%">책상</div>
+        <div class="f bad" style="left:76%;top:46%;width:22%;height:34%">옷장</div>
+        <div class="clear" style="left:50%;top:46%;width:26%;height:34%"></div>
+        <div class="door"></div>
+      </div>
+      <p class="tip">점선은 옷장 문을 열 때 필요한 여유 공간입니다. 가구를 끌어 옮기면 실시간으로 다시 계산됩니다.</p>
+    </main>
+    <aside class="info">
+      <h2 style="margin-top:0">배치 점검</h2>
+      <div class="check ok"><i class="bi bi-check-circle-fill"></i><span>문 앞 통로 900 mm 확보</span></div>
+      <div class="check ok"><i class="bi bi-check-circle-fill"></i><span>침대 양옆 간격 550 mm</span></div>
+      <div class="check bad-t"><i class="bi bi-exclamation-triangle-fill"></i><span>옷장 앞 여유 공간 450 mm — 문을 열기 부족해요 (권장 600 mm 이상)</span></div>
+      <h2>가구 구매 전 확인</h2>
+      <div class="field"><span>배치된 가구</span><b>3개</b></div>
+      <div class="field"><span>바닥 점유율</span><b>41%</b></div>
+      <p class="tip">치수를 입력해 미리 배치해 보면 사 놓고 안 맞는 일을 줄일 수 있습니다. 완성한 배치는 파일로 저장하고 다시 불러올 수 있습니다.</p>
+    </aside>
+  </div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AILego 면접 평가 콘솔 샘플 디자인</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/samples.css">
+  <style>
+    :root { --lego:#E11D48; --lego-600:#BE123C; --lego-50:#FFE4E6; }
+    body { margin:0; background:#f7f5f6; color:var(--text-body); }
+    .app { display:grid; grid-template-columns:210px 1fr; min-height:calc(100vh - 41px); }
+    .nav { background:#2a1620; color:#f1dde4; padding:28px 16px; }
+    .logo { font-size:24px; font-weight:700; color:#fff; margin:0 10px 30px; }
+    .logo b { color:var(--lego); }
+    .nav a { display:block; padding:11px; border-radius:7px; margin:4px 0; }
+    .nav .active { background:var(--lego); color:#fff; }
+    main.content { padding:28px 32px; display:grid; gap:20px; align-content:start; }
+    .head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+    .head h1 { margin:0 0 4px; font-size:22px; }
+    .head p { margin:0; font-size:13px; color:var(--text-muted); }
+    .pill { display:inline-block; font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px; background:var(--lego-50); color:var(--lego-600); }
+    .pill.ok { background:#dcfce7; color:#15803d; }
+    .pill.warn { background:#fef3c7; color:#b45309; }
+    .cols { display:grid; grid-template-columns:1.5fr 1fr; gap:20px; }
+    .panel { background:#fff; border:1px solid var(--border-default); border-radius:12px; padding:20px; }
+    .panel h2 { margin:0 0 14px; font-size:16px; }
+    .total { display:flex; gap:24px; align-items:center; margin-bottom:6px; }
+    .score { font-size:40px; font-weight:700; color:var(--lego-600); line-height:1; }
+    .q { border-top:1px solid var(--border-subtle); padding:14px 0; }
+    .q-head { display:flex; justify-content:space-between; gap:10px; font-weight:700; color:var(--text-strong); font-size:14px; }
+    .quote { margin:8px 0 0; padding:8px 12px; border-left:3px solid var(--lego); background:var(--lego-50); font-size:13px; border-radius:0 6px 6px 0; }
+    .q small { display:block; margin-top:6px; color:var(--text-muted); font-size:12px; }
+    .bar { height:8px; border-radius:999px; background:#eee; margin:8px 0 4px; overflow:hidden; }
+    .bar i { display:block; height:100%; background:var(--lego); }
+    .timeline { list-style:none; margin:0; padding:0; display:grid; gap:10px; font-size:13px; }
+    .timeline li { display:flex; gap:10px; }
+    .timeline time { font-family:var(--font-mono); color:var(--text-muted); flex:none; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    .actions button { font:inherit; font-weight:700; padding:10px 16px; border-radius:7px; border:1px solid var(--border-default); background:#fff; cursor:default; }
+    .actions .primary { background:var(--lego); border-color:var(--lego); color:#fff; }
+    .note { font-size:12px; color:var(--text-muted); margin:10px 0 0; }
+    @media (max-width:900px) { .app { grid-template-columns:1fr; } .nav { display:none; } .cols { grid-template-columns:1fr; } main.content { padding:20px 16px; } }
+  </style>
+</head>
+<body>
+  <div class="sample-bar"><a class="sb-back" href="../"><i class="bi bi-arrow-left"></i> AIvance 홈</a><span class="sb-label"><span class="sb-tag" style="color:var(--lego)">AILego</span> AI 화상면접 평가 콘솔</span><a class="sb-home" href="https://lego.aivance.kr" target="_blank" rel="noopener">lego.aivance.kr <i class="bi bi-box-arrow-up-right"></i></a></div>
+  <div class="app">
+    <aside class="nav">
+      <div class="logo"><b>AI</b>Lego</div>
+      <a><i class="bi bi-briefcase"></i> 채용 공고</a>
+      <a class="active"><i class="bi bi-people"></i> 응시자 평가</a>
+      <a><i class="bi bi-list-check"></i> 질문·루브릭</a>
+      <a><i class="bi bi-shield-check"></i> 감사 로그</a>
+      <a><i class="bi bi-gear"></i> 설정</a>
+    </aside>
+    <main class="content">
+      <div class="head">
+        <div>
+          <h1>김서연 · 간호직 수시채용 <span class="pill ok">채점 완료</span></h1>
+          <p>응시 2026-10-18 14:02 · 질문 3개 · 루브릭 v3 (담당자 승인 완료)</p>
+        </div>
+        <span class="pill">AI 평가 동의 확인됨</span>
+      </div>
+      <div class="cols">
+        <section class="panel">
+          <h2>루브릭 기반 채점 결과</h2>
+          <div class="total"><span class="score">82</span><span>종합 점수 / 100<br><small style="color:var(--text-muted)">AI 점수는 참고용이며 합격·불합격을 자동 결정하지 않습니다.</small></span></div>
+          <div class="q">
+            <div class="q-head"><span>Q1. 환자와 갈등이 생겼던 경험을 말씀해 주세요.</span><span>4 / 5</span></div>
+            <div class="bar"><i style="width:80%"></i></div>
+            <p class="quote">“먼저 불편하신 부분을 끝까지 들은 뒤, 병동 규정 안에서 가능한 대안을 두 가지 설명드렸습니다.”</p>
+            <small>근거: 문제 해결 · 의사소통 기준 충족 (전사문 00:42)</small>
+          </div>
+          <div class="q">
+            <div class="q-head"><span>Q2. 야간 근무 중 우선순위를 정하는 기준은 무엇인가요?</span><span>5 / 5</span></div>
+            <div class="bar"><i style="width:100%"></i></div>
+            <p class="quote">“환자 상태 변화 가능성이 높은 순서로 먼저 확인하고, 나머지는 인수인계 메모에 남깁니다.”</p>
+            <small>근거: 판단력 · 책임감 기준 충족 (전사문 01:55)</small>
+          </div>
+          <div class="q">
+            <div class="q-head"><span>Q3. 입사 후 1년 목표를 알려주세요.</span><span>3 / 5</span></div>
+            <div class="bar"><i style="width:60%"></i></div>
+            <p class="quote">“빨리 적응해서 팀에 도움이 되고 싶습니다.”</p>
+            <small>근거: 구체적인 계획·지표가 언급되지 않음 (전사문 02:40)</small>
+          </div>
+        </section>
+        <div style="display:grid;gap:20px;align-content:start">
+          <section class="panel">
+            <h2>부정행위 신호 <span class="pill warn">확인 필요 1건</span></h2>
+            <ul class="timeline">
+              <li><time>00:00</time><span>전체화면 진입, 얼굴 1명 감지</span></li>
+              <li><time>01:12</time><span>탭 이탈 3초 <span class="pill warn">검토</span></span></li>
+              <li><time>02:58</time><span>응시 종료, 이상 신호 없음</span></li>
+            </ul>
+            <p class="note">영상은 본인 확인·부정행위 탐지에만 사용하며 표정·시선으로 점수를 매기지 않습니다.</p>
+          </section>
+          <section class="panel">
+            <h2>최종 판정 (담당자)</h2>
+            <div class="actions">
+              <button class="primary" type="button">2차 면접 진행</button>
+              <button type="button">보류</button>
+              <button type="button">불합격</button>
+            </div>
+            <p class="note">최종 판단은 항상 사람이 합니다. 보관 기간이 지나면 영상·전사문은 자동 파기됩니다.</p>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
