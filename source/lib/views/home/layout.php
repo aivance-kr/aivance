@@ -58,7 +58,8 @@ $shared = compact('site', 'products', 'faq', 'blog', 'selectedType', 'productCou
 <body>
 <?= home_partial('header', $shared) ?>
   <main>
-<?php foreach (['hero', 'trust', 'founder', 'consulting', 'products', 'blog', 'voucher', 'faq', 'contact'] as $section): ?>
+<?php /* 바우처 섹션은 비노출 — 공급기업 등록 후 'voucher' 를 blog 와 faq 사이에 다시 넣는다 */ ?>
+<?php foreach (['hero', 'trust', 'founder', 'consulting', 'products', 'blog', 'faq', 'contact'] as $section): ?>
 <?= home_partial($section, $shared) ?>
 <?php endforeach; ?>
   </main>

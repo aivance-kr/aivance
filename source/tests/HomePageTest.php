@@ -14,7 +14,7 @@ final class HomePageTest extends TestCase
     {
         $html = home_render();
         self::assertSame(1, substr_count($html, '<h1'));
-        foreach (['top', 'trust', 'founder', 'consulting', 'products', 'blog', 'voucher', 'faq', 'contact'] as $id) {
+        foreach (['top', 'trust', 'founder', 'consulting', 'products', 'blog', 'faq', 'contact'] as $id) {
             self::assertStringContainsString('id="' . $id . '"', $html);
         }
     }
