@@ -23,7 +23,7 @@ function slack_notify_inquiry(int $inquiryId, array $fields, string $message): v
     $blocks = [
         [
             'type' => 'header',
-            'text' => ['type' => 'plain_text', 'text' => '새 도입 문의 #' . $inquiryId, 'emoji' => true],
+            'text' => ['type' => 'plain_text', 'text' => '[AIVance] 새 문의 #' . $inquiryId, 'emoji' => true],
         ],
     ];
 
@@ -58,7 +58,7 @@ function slack_notify_inquiry(int $inquiryId, array $fields, string $message): v
     }
 
     slack_post($webhook, [
-        'text'   => '새 도입 문의 #' . $inquiryId . ' — ' . slack_escape($fields['이름 / 회사'] ?? ''),
+        'text'   => '[AIVance] 새 문의 #' . $inquiryId . ' — ' . slack_escape($fields['이름 / 회사'] ?? ''),
         'blocks' => $blocks,
     ]);
 }

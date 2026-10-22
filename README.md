@@ -247,7 +247,7 @@ curl -s -o /dev/null -w "%{http_code}\n" "https://aivance.kr/writable/db/inquiri
 
 이후 실제 브라우저에서:
 
-1. 문의 폼을 제출 → Slack 채널에 **새 도입 문의 #N** 알림이 도착하는지 확인
+1. 문의 폼을 제출 → Slack 채널에 **[AIVance] 새 문의 #N** 알림이 도착하는지 확인
 2. <https://aivance.kr/admin.php> 로그인 → 목록에 방금 접수한 문의가 보이는지 확인
 3. 상세에서 답장을 발송해 문의자 주소로 메일이 실제 도착하는지 확인
 
